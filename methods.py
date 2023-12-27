@@ -7,10 +7,12 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Union, List
 from constants import SECRET_KEY,ALGORITHM
+from sqlalchemy.orm import Session
+
 from models import TokenData
 from resume_parser import extract_data
 
-from schemas import User
+from schemas import User, get_db
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -53,15 +55,13 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return token_data
 
 
-def get_user_from_token(token: str):
-    db = SessionLocal()
+def get_user_from_token(token: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.token == token).first()
     db.close()
     return user
 
 
-def update_user_password(user_id: int, new_password):
-    db = SessionLocal()
+def update_user_password(user_id: int, new_password, db: Session = Depends(get_db)):
     hashed_password = pwd_context.hash(new_password)
 
     # Update the user's hashed password in the database

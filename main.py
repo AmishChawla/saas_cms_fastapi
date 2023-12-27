@@ -12,7 +12,6 @@ from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
 from sqlalchemy import update
-from resume_parser import extract_data
 
 # Initialize FastAPI and database
 app = FastAPI()
