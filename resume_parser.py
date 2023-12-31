@@ -5,8 +5,11 @@ warnings.filterwarnings('ignore')
 import en_core_web_sm
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
+import nltk
 
 
+
+nltk.download('stopwords')
 nlp = en_core_web_sm.load()
 
 def list_of_dicts_to_xml(data_list, root_name='data', item_name='resume'):
