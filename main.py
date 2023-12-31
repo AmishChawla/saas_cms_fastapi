@@ -13,6 +13,7 @@ from methods import get_password_hash, verify_password, create_access_token, get
     get_user_from_token, update_user_password
 from sqlalchemy import update
 
+
 # Initialize FastAPI and database
 app = FastAPI()
 database = Database(DATABASE_URL)
@@ -154,5 +155,6 @@ async def get_all_users(current_user: TokenData = Depends(get_current_user)):
 
 if __name__ == "__main__":
     import uvicorn
-
+    import nltk
+    nltk.download('stopwords')
     uvicorn.run(app, host="127.0.0.1", port=8000)

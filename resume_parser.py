@@ -1,16 +1,15 @@
 from pyresparser import ResumeParser
 import warnings
 import pandas as pd
+
 warnings.filterwarnings('ignore')
 import en_core_web_sm
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
-import nltk
 
 
-
-nltk.download('stopwords')
 nlp = en_core_web_sm.load()
+
 
 def list_of_dicts_to_xml(data_list, root_name='data', item_name='resume'):
     root = ET.Element(root_name)
@@ -24,6 +23,7 @@ def list_of_dicts_to_xml(data_list, root_name='data', item_name='resume'):
     prettified_xml = dom.toprettyxml(indent='    ')
 
     return prettified_xml
+
 
 def _dict_to_xml(dictionary, parent):
     for key, value in dictionary.items():
@@ -43,6 +43,7 @@ def _dict_to_xml(dictionary, parent):
             child = ET.Element(key)
             child.text = str(value)
             parent.append(child)
+
 
 async def extract_data(file_paths):
     result = []
@@ -64,10 +65,8 @@ async def extract_data(file_paths):
 
     return result, csv_file_path, xml_file_path
 
-
 # result = extract_data([
 # 'resumes/AmishChawla_20CE1020.pdf',
 # 'resumes/AryanLakde_20CE1118.pdf',
 # 'resumes/CV_AmishChawla.pdf',
 # ])
-
