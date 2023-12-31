@@ -2,11 +2,12 @@ from pyresparser import ResumeParser
 import warnings
 import pandas as pd
 warnings.filterwarnings('ignore')
-# import en_core_web_sm
+import en_core_web_sm
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
-# nlp = en_core_web_sm.load()
+
+nlp = en_core_web_sm.load()
 
 def list_of_dicts_to_xml(data_list, root_name='data', item_name='resume'):
     root = ET.Element(root_name)
