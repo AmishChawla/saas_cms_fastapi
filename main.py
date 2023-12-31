@@ -155,6 +155,4 @@ async def get_all_users(current_user: TokenData = Depends(get_current_user)):
 
 if __name__ == "__main__":
     import uvicorn
-    import nltk
-    nltk.download('stopwords')
     uvicorn.run(app, host="127.0.0.1", port=8000)

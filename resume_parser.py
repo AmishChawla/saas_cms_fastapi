@@ -6,7 +6,9 @@ warnings.filterwarnings('ignore')
 import en_core_web_sm
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
-
+import nltk
+nltk.download('stopwords')
+nltk.data.path.append("./venv/Lib/site-packages/nltk")
 
 nlp = en_core_web_sm.load()
 
