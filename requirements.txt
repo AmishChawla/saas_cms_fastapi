@@ -7,3 +7,5 @@ pyresparser
 python_jose
 SQLAlchemy
 uvicorn
+
+python-dotenv
