@@ -19,6 +19,11 @@ app = FastAPI()
 database = Database(DATABASE_URL)
 
 
+@app.get("/")
+def index():
+    return {'status': 'Success'}
+
+
 # Routes
 @app.post("/register", response_model=UserResponse)
 async def register_user(user: UserCreate):
