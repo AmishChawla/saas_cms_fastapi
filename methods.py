@@ -12,7 +12,7 @@ from sqlalchemy.orm import Session
 from models import TokenData
 from resume_parser import extract_data
 
-from schemas import User, get_db
+from schemas import User, get_db, SessionLocal
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
@@ -55,7 +55,9 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
     return token_data
 
 
-def get_user_from_token(token: str, db: Session = Depends(get_db)):
+def get_user_from_token(token: str):
+    db = SessionLocal()
+
     user = db.query(User).filter(User.token == token).first()
     db.close()
     return user

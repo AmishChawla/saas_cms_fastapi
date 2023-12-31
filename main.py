@@ -6,7 +6,7 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db
+from schemas import User, ResumeData, get_db, SessionLocal
 from models import UserResponse, UserCreate, Token, TokenData
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
@@ -93,11 +93,11 @@ async def update_password(
 
 @app.post("/process-resume/")
 async def process_resume(
+
         pdf_files: List[UploadFile] = File(...),
         token: str = Depends(oauth2_scheme),
-        db: Session = Depends(get_db)
-
 ):
+    db = SessionLocal()
     user = get_user_from_token(token)
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
     with open(csv_path, 'rb') as file:
