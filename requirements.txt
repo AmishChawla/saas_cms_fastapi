@@ -8,4 +8,4 @@ pydantic
 pyresparser
 python_jose
 SQLAlchemy
-uvicorn=
+uvicorn
