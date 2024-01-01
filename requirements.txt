@@ -14,6 +14,5 @@ python-dotenv
 aiosqlite
 bcrypt
 python-multipart
-psycopg2
+psycopg2-binary
 asyncpg
-py-postgresql
