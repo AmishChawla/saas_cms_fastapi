@@ -14,4 +14,3 @@ python-dotenv
 aiosqlite
 bcrypt
 python-multipart
-postgresql
