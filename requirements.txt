@@ -11,3 +11,5 @@ python_jose
 SQLAlchemy
 uvicorn
 python-dotenv
+aiosqlite
+bcrypt
