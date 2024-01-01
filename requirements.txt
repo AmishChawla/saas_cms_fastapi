@@ -16,3 +16,4 @@ bcrypt
 python-multipart
 psycopg2
 asyncpg
+pypostgresql
