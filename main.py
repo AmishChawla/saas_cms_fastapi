@@ -221,3 +221,37 @@ async def admin_delete_user(
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
+@app.post("/admin/login", response_model=Token)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+    # Authenticate user using email
+
+    query = User.__table__.select().where(User.email == form_data.username)
+    user = await database.fetch_one(query)
+    print(user)
+    if user is None or not verify_password(form_data.password, user['hashed_password']):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    elif user["role"] != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role},
+            expires_delta=access_token_expires
+        )
+
+        query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
+        await database.execute(query)
+
+        return {"access_token": access_token, "token_type": "bearer"}
