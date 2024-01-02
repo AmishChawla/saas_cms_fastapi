@@ -160,6 +160,64 @@ async def get_all_users(current_user: TokenData = Depends(get_current_user)):
     return users
 
 
+@app.post("/admin/add-user", response_model=dict)
+async def admin_add_user(user: UserCreate, current_user: TokenData = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+    else:
+        print(current_user.role)
+        async with database.transaction():
+            # Check if the email is already registered
+            query = User.__table__.select().where(User.email == user.email)
+            existing_user = await database.fetch_one(query)
+            if existing_user:
+                raise HTTPException(status_code=400, detail="Email already registered")
+
+            # Create a new user
+            db_user = await database.execute(User.__table__.insert().values(
+                username=user.username,
+                email=user.email,
+                hashed_password=get_password_hash(user.password),
+                role=user.role
+            ))
+
+            return {
+                    "message": "User registered successfully",
+                    "id": db_user,
+                    "username": user.username,
+                    "email": user.email,
+                    "role": user.role
+                    }
+
+
+@app.delete("/admin/delete-user/{user_id}", response_model=dict)
+async def admin_delete_user(
+    user_id: int,
+    current_user: TokenData = Depends(get_current_user),
+    db: Session = Depends(get_db)
+):
+    """
+    Endpoint to allow an admin to delete a user.
+    """
+    # Check if the current user is an admin
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Check if the user to be deleted exists
+    user_to_delete = db.query(User).filter(User.id == user_id).first()
+    if not user_to_delete:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    # Delete the associated records in the ResumeData table
+    db.query(ResumeData).filter(ResumeData.user_id == user_id).delete()
+
+    # Delete the user
+    db.delete(user_to_delete)
+    db.commit()
+
+    return {"message": "User deleted successfully", "user_id": user_id}
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
