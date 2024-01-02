@@ -105,6 +105,7 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
+
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
     with open(csv_path, 'rb') as file:
         csv_content = file.read()
@@ -132,7 +133,8 @@ async def process_resume(
 
 
 @app.get('/user-profile')
-async def user_profile(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def user_profile(token: str = Depends(oauth2_scheme)):
+    db = SessionLocal()
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(token=token).first()
 

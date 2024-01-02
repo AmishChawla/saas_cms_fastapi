@@ -53,7 +53,7 @@ async def extract_data(file_paths):
 
     # Convert the extracted data to a Pandas DataFrame
     df = pd.DataFrame(result)
-
+    print(df)
     # Save DataFrame to CSV
     csv_file_path = 'output.csv'
     df.to_csv(csv_file_path, index=False)
@@ -62,7 +62,7 @@ async def extract_data(file_paths):
     xml_data = list_of_dicts_to_xml(result)
     with open(xml_file_path, 'w', encoding='utf-8') as xml_file:
         xml_file.write(xml_data)
-
+    print(result, csv_file_path, xml_file_path)
     return result, csv_file_path, xml_file_path
 
 # result = extract_data([

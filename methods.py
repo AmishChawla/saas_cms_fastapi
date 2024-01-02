@@ -63,8 +63,9 @@ def get_user_from_token(token: str):
     return user
 
 
-def update_user_password(user_id: int, new_password, db: Session = Depends(get_db)):
+def update_user_password(user_id: int, new_password):
     hashed_password = pwd_context.hash(new_password)
+    db=SessionLocal()
 
     # Update the user's hashed password in the database
     db.execute(
@@ -91,7 +92,7 @@ async def parse_resume(files: List[UploadFile] = File(...)):
 
         # Call your resume parser function
         resume_data, csvfile_path, xmlfile_path =await extract_data(file_paths)
-
+        print(resume_data, csvfile_path, xmlfile_path)
         return resume_data, csvfile_path, xmlfile_path
 
     except Exception as e:
