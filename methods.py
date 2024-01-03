@@ -1,21 +1,31 @@
 import os
 import tempfile
+
+import jsonify as jsonify
 from fastapi import HTTPException, Depends, status, UploadFile, File
+from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Union, List
-from constants import SECRET_KEY,ALGORITHM
+
+from sqlalchemy import select
+from starlette.responses import JSONResponse
+
+from constants import SECRET_KEY, ALGORITHM
 from sqlalchemy.orm import Session
 
-from models import TokenData
+from models import TokenData, UserFiles
 from resume_parser import extract_data
 
-from schemas import User, get_db, SessionLocal
+from schemas import User, get_db, SessionLocal, ResumeData
+from sqlalchemy.orm import class_mapper
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
+
 def get_password_hash(password):
     return pwd_context.hash(password)
 
@@ -25,7 +35,7 @@ def verify_password(plain_password, hashed_password):
     return pwd_context.verify(plain_password, hashed_password)
 
 
-def create_access_token(data: dict,  expires_delta: Union[timedelta, None] = None):
+def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None):
     to_encode = data.copy()
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
@@ -65,7 +75,7 @@ def get_user_from_token(token: str):
 
 def update_user_password(user_id: int, new_password):
     hashed_password = pwd_context.hash(new_password)
-    db=SessionLocal()
+    db = SessionLocal()
 
     # Update the user's hashed password in the database
     db.execute(
@@ -91,7 +101,7 @@ async def parse_resume(files: List[UploadFile] = File(...)):
             file_paths.append(file_path)
 
         # Call your resume parser function
-        resume_data, csvfile_path, xmlfile_path =await extract_data(file_paths)
+        resume_data, csvfile_path, xmlfile_path = await extract_data(file_paths)
         print(resume_data, csvfile_path, xmlfile_path)
         return resume_data, csvfile_path, xmlfile_path
 
@@ -102,3 +112,21 @@ async def parse_resume(files: List[UploadFile] = File(...)):
         for file_path in file_paths:
             os.remove(file_path)
         os.rmdir(temp_dir)
+
+
+def row_to_dict(row):
+    data = {}
+    for column in class_mapper(row.__class__).mapped_table.c:
+        data[column.name] = getattr(row, column.name)
+    return data
+
+
+def get_user_files(user_id: int):
+    db = SessionLocal()
+    user_csv_files = db.query(ResumeData.csv_file).filter(ResumeData.user_id == user_id).filter(ResumeData.csv_file.isnot(None)).all()
+
+    # Extract CSV file paths from the result
+    csv_files = [str(file) for file in user_csv_files]
+
+    return csv_files
+

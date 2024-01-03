@@ -7,7 +7,7 @@ from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
 from schemas import User, ResumeData, get_db, SessionLocal
-from models import UserResponse, UserCreate, Token, TokenData
+from models import UserResponse, UserCreate, Token, TokenData, UserFiles
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
@@ -218,13 +218,8 @@ async def admin_delete_user(
     return {"message": "User deleted successfully", "user_id": user_id}
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
-
-
 @app.post("/admin/login", response_model=Token)
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
 
     query = User.__table__.select().where(User.email == form_data.username)
@@ -255,3 +250,27 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         await database.execute(query)
 
         return {"access_token": access_token, "token_type": "bearer"}
+
+
+@app.get("/admin/user-files/{user_id}", response_model=dict)
+async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Retrieve CSV files for the user
+    csv_files = methods.get_user_files(user_id=user_id)
+
+    response_data = {
+        "user_id": user_id,
+        "csv_files": csv_files
+        # Add other fields as needed
+    }
+
+    return response_data
+
+
+if __name__ == "__main__":
+    import uvicorn
+    uvicorn.run(app, host="127.0.0.1", port=8000)
+
+
