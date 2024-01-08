@@ -1,9 +1,7 @@
 import os
 import tempfile
 
-import jsonify as jsonify
 from fastapi import HTTPException, Depends, status, UploadFile, File
-from fastapi.encoders import jsonable_encoder
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext

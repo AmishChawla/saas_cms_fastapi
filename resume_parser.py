@@ -1,14 +1,14 @@
 from pyresparser import ResumeParser
 import warnings
 import pandas as pd
-
+import spacy
 warnings.filterwarnings('ignore')
 import en_core_web_sm
 import xml.etree.ElementTree as ET
 import xml.dom.minidom
 
 
-nlp = en_core_web_sm.load()
+spacy.load('en_core_web_sm')
 
 
 def list_of_dicts_to_xml(data_list, root_name='data', item_name='resume'):
@@ -65,8 +65,10 @@ async def extract_data(file_paths):
     print(result, csv_file_path, xml_file_path)
     return result, csv_file_path, xml_file_path
 
-# result = extract_data([
-# 'resumes/AmishChawla_20CE1020.pdf',
-# 'resumes/AryanLakde_20CE1118.pdf',
-# 'resumes/CV_AmishChawla.pdf',
-# ])
+result = extract_data([
+'resumes/AmishChawla_20CE1020.pdf',
+'resumes/AryanLakde_20CE1118.pdf',
+'resumes/CV_AmishChawla.pdf',
+])
+
+print(result)
