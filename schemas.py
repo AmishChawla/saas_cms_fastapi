@@ -5,8 +5,16 @@ from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
 from constants import DATABASE_URL
 
+
+# ... (more code)
+
+# Check database pool
+
+
+
 Base = declarative_base()
 engine = create_engine(DATABASE_URL)
+
 
 class User(Base):
     __tablename__ = "users"

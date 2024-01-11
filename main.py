@@ -269,6 +269,24 @@ async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get
     return response_data
 
 
+@app.get('/admin/view-user/{user_id}')
+async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+    db = SessionLocal()
+    # Ensure that the user and related resume_data are loaded in the same session
+    user = db.query(User).options(joinedload(User.resume_data)).filter_by(id=user_id).first()
+
+    return {
+        "id": user.id,
+        "username": user.username,
+        "email": user.email,
+        "role": user.role,
+        "token": user.token,
+        "resume_data": user.resume_data
+    }
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)
