@@ -1,0 +1,119 @@
+<?xml version="1.0" ?>
+<data>
+    <resume>
+        <name>Amish Chawla</name>
+        <email>amishchawla8@gmail.com</email>
+        <mobile_number>8130261379</mobile_number>
+        <skills>C</skills>
+        <skills>Mathematics</skills>
+        <skills>Ux</skills>
+        <skills>Analysis</skills>
+        <skills>Html</skills>
+        <skills>Python</skills>
+        <skills>Access</skills>
+        <skills>Php</skills>
+        <skills>Java</skills>
+        <skills>Certification</skills>
+        <skills>Coding</skills>
+        <skills>Website</skills>
+        <skills>Engineering</skills>
+        <skills>Analytics</skills>
+        <skills>Mysql</skills>
+        <skills>Design</skills>
+        <skills>Javascript</skills>
+        <skills>C++</skills>
+        <skills>Mobile</skills>
+        <skills>System</skills>
+        <skills>Css</skills>
+        <skills>Flask</skills>
+        <skills>Strategy</skills>
+        <skills>Cloud</skills>
+        <skills>Database</skills>
+        <skills>Api</skills>
+        <skills>Ui</skills>
+        <skills>Programming</skills>
+        <skills>Algorithms</skills>
+        <skills>Rest</skills>
+        <college_name>None</college_name>
+        <degree>B. E.</degree>
+        <designation>None</designation>
+        <experience>•  Weather Application :(Technologies used: Flutter, Dart, REST API integration, UI design , Aug 2021):</experience>
+        <experience>Developed a weather application using Flutter and Dart, integrating with the Open Weather API to collect and</experience>
+        <experience>display real-time weather data. The app provides information such as current temperature, humidity, pressure, wind</experience>
+        <experience>speed, and feels like temperature. Implemented a user-friendly interface to present the weather data in an easily</experience>
+        <experience>readable format.</experience>
+        <experience>INTERNSHIPS:</experience>
+        <experience>•  Aynsoft (June 2022): Developed a Flutter application that empowered small business owners to sell their</experience>
+        <experience>products online. Implemented essential features, including product listing. Collaborated with a team to integrate</experience>
+        <experience>banner ads using Google AdMob for monetization. Implemented user authentication functionality through REST</experience>
+        <experience>API, enabling login/signup for users. Demonstrated strong problem-solving skills, teamwork, and adaptability in an</experience>
+        <experience>internship setting.</experience>
+        <experience>POSITION OF RESPONSIBILITY</experience>
+        <experience>•  Volunteer at Top Healers – Helped in organising and conduction of healing camps.(December 2023)</experience>
+        <experience>EXTRA CURRICULAR ACHIEVEMENTS</experience>
+        <experience>•  Provided personalized academic support and tutoring services to 8 grade students.</experience>
+        <experience>•  Participated in several Table tennis competitions during school.</experience>
+        <experience>ADDITIONAL INFORMATION</experience>
+        <experience>Preferred Programming Language: JAVA</experience>
+        <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
+        <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
+        <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
+        <company_names>III</company_names>
+        <company_names>F. E.</company_names>
+        <no_of_pages>2</no_of_pages>
+        <total_experience>0.0</total_experience>
+    </resume>
+    <resume>
+        <name>Amish Chawla</name>
+        <email>amishchawla8@gmail.com</email>
+        <mobile_number>8130261379</mobile_number>
+        <skills>Technical</skills>
+        <skills>Ux</skills>
+        <skills>Analysis</skills>
+        <skills>Html</skills>
+        <skills>Python</skills>
+        <skills>Numpy</skills>
+        <skills>Matlab</skills>
+        <skills>Access</skills>
+        <skills>Coding</skills>
+        <skills>Website</skills>
+        <skills>Engineering</skills>
+        <skills>Mysql</skills>
+        <skills>Design</skills>
+        <skills>Javascript</skills>
+        <skills>Seaborn</skills>
+        <skills>System</skills>
+        <skills>Pandas</skills>
+        <skills>Css</skills>
+        <skills>Flask</skills>
+        <skills>Cloud</skills>
+        <skills>Database</skills>
+        <skills>Api</skills>
+        <skills>Ui</skills>
+        <skills>Programming</skills>
+        <skills>Github</skills>
+        <skills>Algorithms</skills>
+        <skills>Rest</skills>
+        <college_name>None</college_name>
+        <degree>Bachelor of Technology - Computer Engineering</degree>
+        <designation>None</designation>
+        <experience>design, and database management</experience>
+        <experience>Clima – Weather App</experience>
+        <experience>•  Technologies used: Flutter, Dart, REST API integration, UI design</experience>
+        <experience>•  Developed a weather application using Flutter and Dart, integrating with the Open Weather API to</experience>
+        <experience>collect and display real-time weather data. The app provides information such as current temperature,</experience>
+        <experience>humidity, pressure, wind speed, and feels like temperature.</experience>
+        <experience>Achievements</experience>
+        <experience>Github</experience>
+        <experience>•  Solved 100+ Data Structures and Algorithms questions on various coding platforms like Leetcode and Pepcoding</experience>
+        <experience>•  Secured 10 Grade Points in Data Structures, Object Oriented Programming, Cloud Computing.</experience>
+        <experience>Position of Responsibilities/Mentorship</experience>
+        <experience>TopHealers</experience>
+        <experience>•  Volunteer at Top Healers – Helped in organizing and conduction of healing camps</experience>
+        <experience>•  Provided personalized academic support and tutoring services to students.</experience>
+        <experience>December 2022</experience>
+        <company_names>None</company_names>
+        <no_of_pages>1</no_of_pages>
+        <total_experience>0.0</total_experience>
+    </resume>
+</data>
