@@ -6,20 +6,27 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal
-from models import UserResponse, UserCreate, Token, TokenData, UserFiles
+from runserver import app
+from schemas import User, ResumeData, get_db
+from models import UserResponse, UserCreate, Token, TokenData
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
 from sqlalchemy import update
+from fastapi import APIRouter
+from db import get_session
+
+
+
+
 
 
 # Initialize FastAPI and database
-app = FastAPI()
+# app = FastAPI()
 database = Database(DATABASE_URL)
 
-
-@app.get("/")
+router = APIRouter()
+@router.get("/")
 def index():
     return {'status': 'Success'}
 
@@ -103,7 +110,7 @@ async def process_resume(
         pdf_files: List[UploadFile] = File(...),
         token: str = Depends(oauth2_scheme),
 ):
-    db = SessionLocal()
+    db = get_session()
     user = get_user_from_token(token)
 
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
@@ -134,7 +141,7 @@ async def process_resume(
 
 @app.get('/user-profile')
 async def user_profile(token: str = Depends(oauth2_scheme)):
-    db = SessionLocal()
+    db = get_session()
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(token=token).first()
 
@@ -273,7 +280,7 @@ async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get
 async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
-    db = SessionLocal()
+    db = get_session()
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(id=user_id).first()
 
@@ -287,8 +294,8 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
     }
 
 
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(app, host="127.0.0.1", port=8000)
+# if __name__ == "__main__":
+#     import uvicorn
+#     uvicorn.run(app, host="127.0.0.1", port=8000)
 
 

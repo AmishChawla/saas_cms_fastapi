@@ -2,18 +2,11 @@ from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, f
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
-from sqlalchemy.orm import sessionmaker
+# from sqlalchemy.orm import sessionmaker
 from constants import DATABASE_URL
 
-
-# ... (more code)
-
-# Check database pool
-
-
-
 Base = declarative_base()
-engine = create_engine(DATABASE_URL)
+# engine = create_engine(DATABASE_URL)
 
 
 class User(Base):
@@ -44,16 +37,16 @@ class ResumeData(Base):
 
 
 # Create all tables defined in the metadata
-Base.metadata.create_all(bind=engine)
-print("Tables created successfully.")
+# Base.metadata.create_all(bind=engine)
+# print("Tables created successfully.")
 
 # Create a sessionmaker
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
-
+# SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
+#
+# def get_db():
+#     db = SessionLocal()
+#     try:
+#         yield db
+#     finally:
+#         db.close()
+#

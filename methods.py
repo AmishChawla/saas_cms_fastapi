@@ -1,6 +1,6 @@
 import os
 import tempfile
-
+from db import get_session
 from fastapi import HTTPException, Depends, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
@@ -8,16 +8,11 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Union, List
 
-from sqlalchemy import select
-from starlette.responses import JSONResponse
-
 from constants import SECRET_KEY, ALGORITHM
-from sqlalchemy.orm import Session
 
-from models import TokenData, UserFiles
+from models import TokenData
 from resume_parser import extract_data
-
-from schemas import User, get_db, SessionLocal, ResumeData
+from schemas import User, ResumeData
 from sqlalchemy.orm import class_mapper
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -64,7 +59,7 @@ def get_current_user(token: str = Depends(oauth2_scheme)):
 
 
 def get_user_from_token(token: str):
-    db = SessionLocal()
+    db = get_session()
 
     user = db.query(User).filter(User.token == token).first()
     db.close()
@@ -73,7 +68,7 @@ def get_user_from_token(token: str):
 
 def update_user_password(user_id: int, new_password):
     hashed_password = pwd_context.hash(new_password)
-    db = SessionLocal()
+    db = get_session()
 
     # Update the user's hashed password in the database
     db.execute(
@@ -120,7 +115,7 @@ def row_to_dict(row):
 
 
 def get_user_files(user_id: int):
-    db = SessionLocal()
+    db = get_session()
     user_csv_files = db.query(ResumeData.csv_file).filter(ResumeData.user_id == user_id).filter(ResumeData.csv_file.isnot(None)).all()
 
     # Extract CSV file paths from the result
