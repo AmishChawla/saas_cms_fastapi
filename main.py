@@ -1,5 +1,5 @@
 import datetime
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile,Request
 from fastapi.security import OAuth2PasswordRequestForm
 from databases import Database
 from datetime import timedelta
@@ -12,10 +12,20 @@ from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
 from sqlalchemy import update
+from fastapi.responses import HTMLResponse
+from fastapi.staticfiles import StaticFiles
+from starlette.templating import Jinja2Templates
 
 
 # Initialize FastAPI and database
-app = FastAPI()
+app = FastAPI(
+    version="1.0",
+    docs_url='/docs',
+    openapi_url='/openapi.json'
+)
+app.mount("/static", StaticFiles(directory="static"), name="static")
+templates = Jinja2Templates(directory="templates")
+
 database = Database(DATABASE_URL)
 
 @app.on_event("startup")
@@ -28,9 +38,14 @@ async def shutdown():
     await database.disconnect()
 
 
-@app.get("/")
-def index():
-    return {'status': 'Success'}
+# @app.get("/")
+# def index():
+#     return {'status': 'Success'}
+
+@app.get("/", response_class=HTMLResponse)
+def index(request: Request):
+    return templates.TemplateResponse(
+    name="index.html", request=request)
 
 
 # Routes
@@ -69,12 +84,18 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
-    access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-    access_token = create_access_token(
+    elif user["role"] != "user":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
         data={"sub": user.username, "role": user.role},
         expires_delta=access_token_expires
-    )
+        )
 
     query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
     await database.execute(query)
