@@ -25,8 +25,8 @@ from starlette.templating import Jinja2Templates
 # Initialize FastAPI and database
 app = FastAPI(
     version="1.0",
-    docs_url='/docs',
-    openapi_url='/openapi.json'
+    docs_url="/docs",
+    openapi_url='/dev/openapi.json'
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
