@@ -1,5 +1,10 @@
 import datetime
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile,Request
+from fastapi.openapi.docs import (
+    get_redoc_html,
+    get_swagger_ui_html,
+    get_swagger_ui_oauth2_redirect_html,
+)
 from fastapi.security import OAuth2PasswordRequestForm
 from databases import Database
 from datetime import timedelta
@@ -315,6 +320,11 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
         "token": user.token,
         "resume_data": user.resume_data
     }
+
+@app.get("/docs", include_in_schema=False)
+async def get_documentation(request: Request):
+    print(request.scope)
+    return get_swagger_ui_html(openapi_url=request.scope.get("root_path")+"/openapi.json", title="Swagger")
 
 
 if __name__ == "__main__":
