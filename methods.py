@@ -1,27 +1,32 @@
 import os
 import tempfile
-
+from email.mime.multipart import MIMEMultipart
+from email.mime.text import MIMEText
+from smtplib import SMTP_SSL, SMTP
 from fastapi import HTTPException, Depends, status, UploadFile, File
 from fastapi.security import OAuth2PasswordBearer
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Union, List
+from passlib.context import CryptContext
+
 
 from sqlalchemy import select
 from starlette.responses import JSONResponse
 
-from constants import SECRET_KEY, ALGORITHM
+from constants import SECRET_KEY, ALGORITHM, EMAIL, EMAIL_PASSWORD
 from sqlalchemy.orm import Session
 
 from models import TokenData, UserFiles
 from resume_parser import extract_data
 
-from schemas import User, get_db, SessionLocal, ResumeData
+from schemas import User, get_db, SessionLocal, ResumeData, PasswordReset
 from sqlalchemy.orm import class_mapper
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
+
 
 
 def get_password_hash(password):
@@ -127,4 +132,56 @@ def get_user_files(user_id: int):
     csv_files = [str(file) for file in user_csv_files]
 
     return csv_files
+
+def create_password_reset_token(email: str, expires_delta: timedelta):
+    db = SessionLocal()
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        db_password_reset = PasswordReset(user_id=user.id)
+        db.add(db_password_reset)
+        db.commit()
+        db.refresh(db_password_reset)
+
+        token_data = {
+            "sub": str(db_password_reset.id),
+            "email": email,
+        }
+        access_token_expires = timedelta(minutes=expires_delta)
+        access_token = create_access_token(
+            data={"sub": str(db_password_reset.id), "email": email},
+            expires_delta=access_token_expires,
+        )
+        return access_token
+
+
+def send_password_reset_email(email: str, message: str, token: str):
+    print(f"tryng to send email  {token}")
+
+    # message = f"""<p>Click the following link to reset your password: <a href='http://localhost:8000/reset-password'>Reset Password</a></p> """
+
+    try:
+        # msg = MIMEMultipart()
+        msg = MIMEText(message, "html")
+
+        msg['Subject'] = "Password Reset"
+        msg['From'] = "noreply"
+        msg['To'] = email
+        port = 587  # For STARTTLS
+
+        # Connect to the email server and start TLS
+        server = SMTP("smtp.gmail.com", port)
+        server.starttls()
+        # Login to the email server
+        server.login("codester641@gmail.com","islv fkwf yqar yiad")
+        # msg.set_type("multipart/mixed")
+
+        # Send the email
+        server.sendmail("codester641@gmail.com", email, msg.as_string())
+        server.quit()
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not send password reset email",
+        )
 

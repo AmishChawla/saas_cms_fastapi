@@ -1,3 +1,5 @@
+
+
 from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
@@ -6,6 +8,7 @@ from sqlalchemy.orm import sessionmaker
 from constants import DATABASE_URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import databases
+import secrets
 
 
 
@@ -23,6 +26,7 @@ class User(Base):
     token = Column(String, default="")
 
     resume_data = relationship("ResumeData", back_populates="user")
+    password_resets = relationship("PasswordReset", back_populates="user")
 
 
 class ResumeData(Base):
@@ -36,6 +40,17 @@ class ResumeData(Base):
     upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="resume_data")
+
+
+class PasswordReset(Base):
+    __tablename__ = "password_resets"
+
+    id = Column(Integer, primary_key=True, index=True)
+    token = Column(String, unique=True, index=True, default=secrets.token_urlsafe)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="password_resets")
 
 
 

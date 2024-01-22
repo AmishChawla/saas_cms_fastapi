@@ -11,7 +11,7 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
@@ -320,11 +320,45 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
         "resume_data": user.resume_data
     }
 
-@app.get("/docs", include_in_schema=False)
-async def get_documentation(request: Request):
-    print(request.scope)
-    return get_swagger_ui_html(openapi_url=request.scope.get("root_path")+"/openapi.json", title="Swagger")
 
+# Endpoint to initiate the forgot password process
+@app.post("/forgot-password")
+async def forgot_password(email: str, message: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        # Generate a password reset token and store it in the database
+        reset_token = PasswordReset(user_id=user.id)
+        db.add(reset_token)
+        db.commit()
+        print("user detected")
+        # Send an email with the reset token
+        methods.send_password_reset_email(email, message, reset_token.token)
+
+        return {
+            "reset_token": reset_token.token,
+            "message": "Password reset instructions sent to your email"
+        }
+
+    raise HTTPException(status_code=404, detail="User not found")
+
+
+# Endpoint to reset the password based on the provided token
+@app.post("/reset-password")
+async def reset_password(token, new_password, db: Session = Depends(get_db)):
+    reset_token = db.query(PasswordReset).filter(PasswordReset.token == token).first()
+    if reset_token:
+        # Reset the user's password
+        user = reset_token.user
+        user.hashed_password = get_password_hash(new_password)
+
+        # Remove the reset token from the database
+        db.delete(reset_token)
+        db.commit()
+        return {
+            "message": "Password reset successfully"
+        }
+
+    # raise HTTPException(status_code=404, detail="Invalid token")
 
 if __name__ == "__main__":
     import uvicorn
