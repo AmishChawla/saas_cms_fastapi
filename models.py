@@ -24,6 +24,7 @@ class UserResponse(BaseModel):
     username: str
     email: str
     role: str
+    created_datetime: datetime
 
 
 class ResumeDataBase(BaseModel):

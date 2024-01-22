@@ -24,6 +24,7 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default="user")
     token = Column(String, default="")
+    created_datetime = Column(DateTime(timezone=True), server_default=func.now())
 
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
@@ -53,12 +54,9 @@ class PasswordReset(Base):
     user = relationship("User", back_populates="password_resets")
 
 
-
-
 # Create all tables defined in the metadata
 Base.metadata.create_all(bind=engine)
 print("Tables created successfully.")
-
 
 
 # Create a sessionmaker

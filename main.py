@@ -53,7 +53,7 @@ def index(request: Request):
 
 
 # Routes
-@app.post("/register", response_model=UserResponse)
+@app.post("/register")
 async def register_user(user: UserCreate):
     async with database.transaction():
         # Check if the email is already registered
@@ -70,10 +70,15 @@ async def register_user(user: UserCreate):
             role=user.role
         ))
 
-        return {"id": db_user,
-                "username": user.username,
-                "email": user.email,
-                "role": user.role}
+        inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
+
+        return {
+            "id": inserted_user["id"],
+            "username": inserted_user["username"],
+            "email": inserted_user["email"],
+            "role": inserted_user["role"],
+            "created_datetime": inserted_user["created_datetime"],
+        }
 
 
 @app.post("/login", response_model=Token)
