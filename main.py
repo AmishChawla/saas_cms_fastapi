@@ -67,7 +67,8 @@ async def register_user(user: UserCreate):
             username=user.username,
             email=user.email,
             hashed_password=get_password_hash(user.password),
-            role=user.role
+            role=user.role,
+            created_datetime=datetime.datetime.utcnow()
         ))
 
         inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
@@ -328,7 +329,7 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
 
 # Endpoint to initiate the forgot password process
 @app.post("/forgot-password")
-async def forgot_password(email: str, message: str, db: Session = Depends(get_db)):
+async def forgot_password(email: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
     if user:
         # Generate a password reset token and store it in the database
@@ -337,7 +338,7 @@ async def forgot_password(email: str, message: str, db: Session = Depends(get_db
         db.commit()
         print("user detected")
         # Send an email with the reset token
-        methods.send_password_reset_email(email, message, reset_token.token)
+        methods.send_password_reset_email(email, reset_token.token)
 
         return {
             "reset_token": reset_token.token,
