@@ -28,6 +28,7 @@ class User(Base):
 
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
+    pdf_files = relationship("PDFFiles", back_populates="user")
 
 
 class ResumeData(Base):
@@ -52,6 +53,19 @@ class PasswordReset(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="password_resets")
+
+
+class PDFFiles(Base):
+    __tablename__ = "pdf_files"
+
+    id = Column(Integer, primary_key=True, index=True)
+    file_name = Column(String, nullable=False)
+    file_data = Column(LargeBinary, nullable=False)
+    upload_datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="pdf_files")
+
 
 
 # Create all tables defined in the metadata

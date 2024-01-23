@@ -2,6 +2,7 @@ from typing import Union, List
 from pydantic import BaseModel
 from datetime import datetime
 
+
 class TokenData(BaseModel):
     username: Union[str, None] = None
     role: Union[str, None] = None
@@ -43,3 +44,10 @@ class UserFiles(BaseModel):
     user_id: int
     csv_files: List[ResumeData]
     xml_files: List[ResumeData]
+
+
+class PdfFiles(BaseModel):
+    file_name: str
+    file_data: bytes
+    upload_datetime: datetime
+    user_id: int

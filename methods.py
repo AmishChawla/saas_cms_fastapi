@@ -21,7 +21,7 @@ from sqlalchemy.orm import Session
 from models import TokenData, UserFiles
 from resume_parser import extract_data
 
-from schemas import User, get_db, SessionLocal, ResumeData, PasswordReset
+from schemas import User, get_db, SessionLocal, ResumeData, PasswordReset, PDFFiles
 from sqlalchemy.orm import class_mapper
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
@@ -100,6 +100,7 @@ async def parse_resume(files: List[UploadFile] = File(...)):
         for file in files:
             file_path = os.path.join(temp_dir, file.filename)
             with open(file_path, "wb") as file_obj:
+                print(f"parsersume {file.file}")
                 file_obj.write(file.file.read())
             file_paths.append(file_path)
 

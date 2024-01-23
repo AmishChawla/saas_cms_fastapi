@@ -65,10 +65,10 @@ async def extract_data(file_paths):
     print(result, csv_file_path, xml_file_path)
     return result, csv_file_path, xml_file_path
 
-result = extract_data([
-'resumes/AmishChawla_20CE1020.pdf',
-'resumes/AryanLakde_20CE1118.pdf',
-'resumes/CV_AmishChawla.pdf',
-])
+# result = extract_data([
+# 'resumes/AmishChawla_20CE1020.pdf',
+# 'resumes/AryanLakde_20CE1118.pdf',
+# 'resumes/CV_AmishChawla.pdf',
+# ])
 
-print(result)
+# print(result)

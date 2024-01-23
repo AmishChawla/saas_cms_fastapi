@@ -1,4 +1,6 @@
 import datetime
+import io
+
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile,Request
 from fastapi.openapi.docs import (
     get_redoc_html,
@@ -11,13 +13,13 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
 from sqlalchemy import update
-from fastapi.responses import HTMLResponse
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
@@ -145,7 +147,7 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
-
+    print(f"process resume ----------------------{pdf_files}")
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
     with open(csv_path, 'rb') as file:
         csv_content = file.read()
@@ -364,7 +366,29 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
             "message": "Password reset successfully"
         }
 
+    # Endpoint to retrieve the list of uploaded PDFs
+    @app.get("/my-pdfs")
+    async def get_my_pdfs(
+            current_user: User = Depends(get_db)
+    ):
+        # Retrieve the list of PDFs for the current user
+        return current_user.pdf_files
+
+    # Endpoint to serve a specific PDF file
+    @app.get("/pdf/{id}/")
+    async def get_pdf(id: int, current_user: User = Depends(get_db)):
+        # Check if the requested PDF file exists for the current user
+        pdf_file_db = current_user.db.query(PDFFiles).filter_by(id=id, user_id=current_user.id).first()
+        if pdf_file_db:
+            return FileResponse(io.BytesIO(pdf_file_db.file_content), media_type="application/pdf")
+        else:
+            raise HTTPException(status_code=404, detail="File not found")
+
     # raise HTTPException(status_code=404, detail="Invalid token")
+
+
+
+
 
 if __name__ == "__main__":
     import uvicorn
