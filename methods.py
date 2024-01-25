@@ -158,7 +158,7 @@ def create_password_reset_token(email: str, expires_delta: timedelta):
 def send_password_reset_email(email: str, token):
     print(f"tryng to send email")
 
-    message = f"""<p>Click the following link to reset your password: <a href='https://resume-parser-flask.onrender.com/reset-password/{token}>Reset Password</a></p> """
+    message = f"""<p>Click the following link to reset your password: <a href='https://resume-parser-flask.onrender.com/reset-password/{token}'>Reset Password</a></p> """
 
     try:
         # msg = MIMEMultipart()

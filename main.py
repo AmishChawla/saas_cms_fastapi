@@ -186,7 +186,8 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
         "email": user.email,
         "role": user.role,
         "token": user.token,
-        "resume_data": user.resume_data
+        "resume_data": user.resume_data,
+        "status": user.status
     }
 
 
@@ -367,24 +368,45 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
         }
 
     # Endpoint to retrieve the list of uploaded PDFs
-    @app.get("/my-pdfs")
-    async def get_my_pdfs(
-            current_user: User = Depends(get_db)
-    ):
-        # Retrieve the list of PDFs for the current user
-        return current_user.pdf_files
+    # @app.get("/my-pdfs")
+    # async def get_my_pdfs(
+    #         current_user: User = Depends(get_db)
+    # ):
+    #     # Retrieve the list of PDFs for the current user
+    #     return current_user.pdf_files
+    #
+    # # Endpoint to serve a specific PDF file
+    # @app.get("/pdf/{id}/")
+    # async def get_pdf(id: int, current_user: User = Depends(get_db)):
+    #     # Check if the requested PDF file exists for the current user
+    #     pdf_file_db = current_user.db.query(PDFFiles).filter_by(id=id, user_id=current_user.id).first()
+    #     if pdf_file_db:
+    #         return FileResponse(io.BytesIO(pdf_file_db.file_content), media_type="application/pdf")
+    #     else:
+    #         raise HTTPException(status_code=404, detail="File not found")
+    #
+    # # raise HTTPException(status_code=404, detail="Invalid token")
 
-    # Endpoint to serve a specific PDF file
-    @app.get("/pdf/{id}/")
-    async def get_pdf(id: int, current_user: User = Depends(get_db)):
-        # Check if the requested PDF file exists for the current user
-        pdf_file_db = current_user.db.query(PDFFiles).filter_by(id=id, user_id=current_user.id).first()
-        if pdf_file_db:
-            return FileResponse(io.BytesIO(pdf_file_db.file_content), media_type="application/pdf")
-        else:
-            raise HTTPException(status_code=404, detail="File not found")
 
-    # raise HTTPException(status_code=404, detail="Invalid token")
+@app.put("/admin/edit-user/")
+async def edit_user(
+        user_id: int,
+        username: str,
+        role: str,
+        status: str,
+        token: str = Depends(oauth2_scheme)
+):
+    # Verify token and get user from the database
+    current_user = get_user_from_token(token)
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    query = update(User.__table__).where(User.id == user_id).values(username=username, role=role, status=status)
+    await database.execute(query)
+
+    return {
+        "message": "User updated successfully"
+    }
 
 
 

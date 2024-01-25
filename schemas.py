@@ -25,6 +25,7 @@ class User(Base):
     role = Column(String, default="user")
     token = Column(String, default="")
     created_datetime = Column(DateTime(timezone=True), server_default=func.now())
+    status = Column(String, default="active")
 
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
