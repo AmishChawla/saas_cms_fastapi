@@ -1,6 +1,6 @@
 
 
-from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime
+from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime, ARRAY
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -41,6 +41,7 @@ class ResumeData(Base):
     csv_file = Column(LargeBinary)
     xml_file = Column(LargeBinary)
     upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
+    pdf_resumes = Column(ARRAY(LargeBinary))
 
     user = relationship("User", back_populates="resume_data")
 

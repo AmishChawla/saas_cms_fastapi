@@ -34,6 +34,7 @@ class ResumeDataBase(BaseModel):
     csv_file: bytes
     xml_file: bytes
     upload_datetime: datetime
+    pdf_resumes: List[bytes]
 
 
 class ResumeData(ResumeDataBase):

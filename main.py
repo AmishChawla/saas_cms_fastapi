@@ -147,18 +147,24 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
-    print(f"process resume ----------------------{pdf_files}")
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
     with open(csv_path, 'rb') as file:
         csv_content = file.read()
     with open(xml_path, 'rb') as file:
         xml_content = file.read()
 
+    pdf_resumes_content = []
+    for pdf_file in pdf_files:
+        # pdf_content = await pdf_file.read()
+        # print(pdf_content)
+        # pdf_resumes_content.append(pdf_content)
+
     new_resume_data = ResumeData(
         user_id=user.id,
         extracted_data=result,
         csv_file=csv_content,
         xml_file=xml_content,
+        pdf_resumes=pdf_resumes_content,
     )
     db.add(new_resume_data)
     db.commit()
@@ -170,7 +176,8 @@ async def process_resume(
         "extracted_data": result,
         "csv_file": csv_content,
         "xml_file": xml_content,
-        "datetime": datetime.datetime.utcnow()
+        "datetime": datetime.datetime.utcnow(),
+        "pdf_resumes": pdf_resumes_content,
     }
 
 
@@ -326,6 +333,7 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
         "email": user.email,
         "role": user.role,
         "token": user.token,
+        "status": user.status,
         "resume_data": user.resume_data
     }
 
