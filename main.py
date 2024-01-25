@@ -155,9 +155,9 @@ async def process_resume(
 
     pdf_resumes_content = []
     for pdf_file in pdf_files:
-        # pdf_content = await pdf_file.read()
-        # print(pdf_content)
-        # pdf_resumes_content.append(pdf_content)
+        pdf_content = await pdf_file.read()
+        print(pdf_content)
+        pdf_resumes_content.append(pdf_content)
 
     new_resume_data = ResumeData(
         user_id=user.id,
