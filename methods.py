@@ -11,7 +11,6 @@ from datetime import datetime, timedelta
 from typing import Union, List
 from passlib.context import CryptContext
 
-
 from sqlalchemy import select
 from starlette.responses import JSONResponse
 
@@ -185,4 +184,17 @@ def send_password_reset_email(email: str, token):
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not send password reset email",
         )
+
+
+
+
+def extract_text_from_pdf(pdf_content):
+    pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
+    text_content = ""
+
+    for page_number in range(pdf_document.page_count):
+        page = pdf_document[page_number]
+        text_content += page.get_text()
+
+    return text_content
 

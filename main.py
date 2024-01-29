@@ -1,6 +1,9 @@
 import datetime
 import io
+import json
+import tempfile
 
+from pdfminer.high_level import extract_text
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile,Request
 from fastapi.openapi.docs import (
     get_redoc_html,
@@ -147,24 +150,39 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
+
+    pdf_resumes_content = []
+    # for pdf_file in pdf_files:
+    #     try:
+    #         with tempfile.NamedTemporaryFile(delete=False) as temp_file:
+    #             temp_file.write(pdf_file.file.read())
+    #             temp_file_path = temp_file.name
+    #
+    #         content = extract_text(temp_file_path)
+    #         # pdf_content = pdf_file.file.read()
+    #         pdf_file.file.seek(0)
+    #         #
+    #         # # pdf_bytes_io = io.BytesIO(pdf_content)
+    #         # # pdf_content = pdf_bytes_io.read()
+    #         # # pdf_result = methods.extract_text_from_pdf(pdf_content)
+    #
+    #         print(f"PDF Content Size: {len(content)}")
+    #         pdf_resumes_content.append(content)
+    #     except Exception as e:
+    #         print(f"Error reading PDF file: {e}")
+
     result, csv_path, xml_path = await methods.parse_resume(pdf_files)
     with open(csv_path, 'rb') as file:
         csv_content = file.read()
     with open(xml_path, 'rb') as file:
         xml_content = file.read()
 
-    pdf_resumes_content = []
-    for pdf_file in pdf_files:
-        pdf_content = await pdf_file.read()
-        print(pdf_content)
-        pdf_resumes_content.append(pdf_content)
 
     new_resume_data = ResumeData(
         user_id=user.id,
         extracted_data=result,
         csv_file=csv_content,
         xml_file=xml_content,
-        pdf_resumes=pdf_resumes_content,
     )
     db.add(new_resume_data)
     db.commit()
@@ -177,7 +195,6 @@ async def process_resume(
         "csv_file": csv_content,
         "xml_file": xml_content,
         "datetime": datetime.datetime.utcnow(),
-        "pdf_resumes": pdf_resumes_content,
     }
 
 
@@ -396,7 +413,7 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
     # # raise HTTPException(status_code=404, detail="Invalid token")
 
 
-@app.put("/admin/edit-user/")
+@app.put("/admin/edit-user")
 async def edit_user(
         user_id: int,
         username: str,

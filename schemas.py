@@ -41,7 +41,7 @@ class ResumeData(Base):
     csv_file = Column(LargeBinary)
     xml_file = Column(LargeBinary)
     upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
-    pdf_resumes = Column(ARRAY(LargeBinary))
+    # pdf_resumes = Column(ARRAY(LargeBinary))
 
     user = relationship("User", back_populates="resume_data")
 
