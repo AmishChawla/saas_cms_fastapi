@@ -16,8 +16,8 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles
-from models import UserResponse, UserCreate, Token, TokenData, UserFiles
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant
+from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
@@ -434,7 +434,87 @@ async def edit_user(
     }
 
 
+@app.post("/register-admin")
+async def register_admin(admin: AdminInfo):
+    async with database.transaction():
+        # Check if the email is already registered
+        query = User.__table__.select().where(User.email == admin.email)
+        existing_user = await database.fetch_one(query)
+        if existing_user:
+            raise HTTPException(status_code=400, detail="Email already registered")
 
+        # Create a new user
+        db_user = await database.execute(User.__table__.insert().values(
+            username=admin.username,
+            email=admin.email,
+            hashed_password=get_password_hash(admin.password),
+            role=admin.role,
+            status="active",
+            created_datetime=datetime.datetime.utcnow()
+        ))
+
+        inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
+
+        return {
+            "id": inserted_user["id"],
+            "username": inserted_user["username"],
+            "email": inserted_user["email"],
+            "role": inserted_user["role"],
+            "created_datetime": inserted_user["created_datetime"],
+            "status": inserted_user["status"],
+        }
+
+
+@app.post("/register-company")
+async def register_company(company: Company, token: str = Depends(oauth2_scheme)):
+    current_user = get_user_from_token(token)
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+    async with database.transaction():
+        # Check if the email is already registered
+        query = Tenant.__table__.select().where(Tenant.email == company.email)
+        existing_company = await database.fetch_one(query)
+        if existing_company:
+            raise HTTPException(status_code=400, detail="Email already registered")
+
+        # Create a new user
+        db_user = await database.execute(Tenant.__table__.insert().values(
+            name=company.name,
+            email=company.email,
+            phone_no=company.phone_no,
+            address=company.address,
+            description=company.description,
+            admin_id=current_user.id,
+            status="active"
+        ))
+
+        inserted_user = await database.fetch_one(Tenant.__table__.select().where(Tenant.id == db_user))
+        print(current_user.company_id, current_user.status, current_user.email)
+        print(inserted_user["id"])
+        current_user.company_id = inserted_user["id"]
+        print(current_user.company_id, current_user.status, current_user.email)
+        query = update(User.__table__).where(User.id == current_user.id).values(company_id=inserted_user["id"])
+        await database.execute(query)
+        print(current_user.id, current_user.company_id, current_user.status, current_user.email)
+        return {
+            "id": inserted_user["id"],
+            "name": inserted_user["name"],
+            "email": inserted_user["email"],
+            "phone_no":  inserted_user["phone_no"],
+            "address":  inserted_user["address"],
+            "description":  inserted_user["description"],
+            "created_datetime": inserted_user["created_datetime"],
+            "status": inserted_user["status"],
+            "admin_id": inserted_user["admin_id"],
+        }
+
+
+@app.get("/companies")
+async def get_all_users():
+
+    query = Tenant.__table__.select()
+    tenants = await database.fetch_all(query)
+    return tenants
 
 
 if __name__ == "__main__":

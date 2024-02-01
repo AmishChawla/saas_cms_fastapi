@@ -52,3 +52,20 @@ class PdfFiles(BaseModel):
     file_data: bytes
     upload_datetime: datetime
     user_id: int
+
+
+class AdminInfo(BaseModel):
+    username: str
+    email: str
+    password: str
+    role: str = "admin"
+
+
+class Company(BaseModel):
+    name: str
+    email: str
+    phone_no: str
+    address: str
+    description: str
+    created_datetime = datetime
+    status: str

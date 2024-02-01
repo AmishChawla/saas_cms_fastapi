@@ -198,3 +198,10 @@ def extract_text_from_pdf(pdf_content):
 
     return text_content
 
+
+def generate_company_url(base_url, company_name, company_id):
+
+
+    return text_content
+
+
