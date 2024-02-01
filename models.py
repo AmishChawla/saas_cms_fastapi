@@ -67,5 +67,5 @@ class Company(BaseModel):
     phone_no: str
     address: str
     description: str
-    created_datetime = datetime
+    created_datetime: datetime
     status: str
