@@ -26,6 +26,8 @@ class UserResponse(BaseModel):
     email: str
     role: str
     created_datetime: datetime
+    status: str
+    company_id: int
 
 
 class ResumeDataBase(BaseModel):

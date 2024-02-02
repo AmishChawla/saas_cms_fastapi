@@ -4,7 +4,7 @@ import json
 import tempfile
 
 from pdfminer.high_level import extract_text
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile,Request
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
@@ -26,7 +26,6 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 
-
 # Initialize FastAPI and database
 app = FastAPI(
     docs_url="/docs",
@@ -36,6 +35,7 @@ app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
 
 database = Database(DATABASE_URL)
+
 
 @app.on_event("startup")
 async def startup():
@@ -54,12 +54,12 @@ async def shutdown():
 @app.get("/", response_class=HTMLResponse)
 def index(request: Request):
     return templates.TemplateResponse(
-    name="index.html", request=request)
+        name="index.html", request=request)
 
 
 # Routes
-@app.post("/register")
-async def register_user(user: UserCreate):
+@app.post("/register/{company_name}")
+async def register_user(user: UserCreate, company_name: str = Path(...), company_id: int = Body(...)):
     async with database.transaction():
         # Check if the email is already registered
         query = User.__table__.select().where(User.email == user.email)
@@ -73,7 +73,10 @@ async def register_user(user: UserCreate):
             email=user.email,
             hashed_password=get_password_hash(user.password),
             role=user.role,
-            created_datetime=datetime.datetime.utcnow()
+            status="active",
+            created_datetime=datetime.datetime.utcnow(),
+            company_id=company_id
+
         ))
 
         inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
@@ -84,6 +87,9 @@ async def register_user(user: UserCreate):
             "email": inserted_user["email"],
             "role": inserted_user["role"],
             "created_datetime": inserted_user["created_datetime"],
+            "status": inserted_user["status"],
+            "company_id": inserted_user["company_id"],
+            "company_name": company_name
         }
 
 
@@ -108,8 +114,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     else:
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
-        data={"sub": user.username, "role": user.role},
-        expires_delta=access_token_expires
+            data={"sub": user.username, "role": user.role},
+            expires_delta=access_token_expires
         )
 
     query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
@@ -177,7 +183,6 @@ async def process_resume(
     with open(xml_path, 'rb') as file:
         xml_content = file.read()
 
-
     new_resume_data = ResumeData(
         user_id=user.id,
         extracted_data=result,
@@ -215,20 +220,22 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
     }
 
 
-
 # Protected route accessible only to users with the "admin" role
 @app.get("/admin/users", response_model=List[UserResponse])
-async def get_all_users(current_user: TokenData = Depends(get_current_user)):
+async def get_all_users(token: str = Depends(oauth2_scheme)):
+    current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    query = User.__table__.select()
+    query = User.__table__.select().where(User.company_id == current_user.company_id)
+    # where(User.email == user.email)
     users = await database.fetch_all(query)
     return users
 
 
 @app.post("/admin/add-user", response_model=dict)
-async def admin_add_user(user: UserCreate, current_user: TokenData = Depends(get_current_user)):
+async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
+    current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
     else:
@@ -245,23 +252,26 @@ async def admin_add_user(user: UserCreate, current_user: TokenData = Depends(get
                 username=user.username,
                 email=user.email,
                 hashed_password=get_password_hash(user.password),
-                role=user.role
+                role=user.role,
+                status="active",
+                company_id=current_user.company_id
             ))
 
             return {
-                    "message": "User registered successfully",
-                    "id": db_user,
-                    "username": user.username,
-                    "email": user.email,
-                    "role": user.role
-                    }
+                "message": "User registered successfully",
+                "id": db_user,
+                "username": user.username,
+                "email": user.email,
+                "role": user.role,
+                "company_id": current_user.company_id
+            }
 
 
 @app.delete("/admin/delete-user/{user_id}", response_model=dict)
 async def admin_delete_user(
-    user_id: int,
-    current_user: TokenData = Depends(get_current_user),
-    db: Session = Depends(get_db)
+        user_id: int,
+        current_user: TokenData = Depends(get_current_user),
+        db: Session = Depends(get_db)
 ):
     """
     Endpoint to allow an admin to delete a user.
@@ -500,9 +510,9 @@ async def register_company(company: Company, token: str = Depends(oauth2_scheme)
             "id": inserted_user["id"],
             "name": inserted_user["name"],
             "email": inserted_user["email"],
-            "phone_no":  inserted_user["phone_no"],
-            "address":  inserted_user["address"],
-            "description":  inserted_user["description"],
+            "phone_no": inserted_user["phone_no"],
+            "address": inserted_user["address"],
+            "description": inserted_user["description"],
             "created_datetime": inserted_user["created_datetime"],
             "status": inserted_user["status"],
             "admin_id": inserted_user["admin_id"],
@@ -511,7 +521,6 @@ async def register_company(company: Company, token: str = Depends(oauth2_scheme)
 
 @app.get("/companies")
 async def get_all_users():
-
     query = Tenant.__table__.select()
     tenants = await database.fetch_all(query)
     return tenants
@@ -519,6 +528,5 @@ async def get_all_users():
 
 if __name__ == "__main__":
     import uvicorn
+
     uvicorn.run(app, host="127.0.0.1", port=8000)
-
-
