@@ -525,6 +525,11 @@ async def get_all_users():
     tenants = await database.fetch_all(query)
     return tenants
 
+@app.get("/company/{company_id}")
+async def get_all_users(company_id: int):
+    query = Tenant.__table__.select().where(Tenant.id == company_id)
+    tenant = await database.fetch_one(query)
+    return tenant
 
 if __name__ == "__main__":
     import uvicorn
