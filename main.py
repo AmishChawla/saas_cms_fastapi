@@ -2,8 +2,6 @@ import datetime
 import io
 import json
 import tempfile
-from idlelib.query import Query
-
 from pdfminer.high_level import extract_text
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body,Query
 from fastapi.openapi.docs import (
