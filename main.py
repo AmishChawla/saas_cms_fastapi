@@ -1,6 +1,7 @@
 import datetime
 import io
 import json
+import math
 import tempfile
 from pdfminer.high_level import extract_text
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body,Query
@@ -16,11 +17,11 @@ from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
 from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant
-from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company
+from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company, UsersResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
-from sqlalchemy import update, select
+from sqlalchemy import update, select, func
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -220,7 +221,7 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
 
 
 # Protected route accessible only to users with the "admin" role
-@app.get("/admin/users", response_model=List[UserResponse])
+@app.get("/admin/users", response_model=UsersResponse)
 async def get_all_users(
         page: int = Query(1, gt=0, description="Page number"),
         per_page: int = Query(10, gt=0, le=100, description="Items per page"),
@@ -231,15 +232,18 @@ async def get_all_users(
         raise HTTPException(status_code=403, detail="Permission denied")
 
     base_query = select(User).where(User.company_id == current_user.company_id)
-    # query = User.__table__.select().where(User.company_id == current_user.company_id)
+    total_users_count = await database.execute(base_query.with_only_columns([func.count()]))
     # where(User.email == user.email)
 
     offset = (page - 1) * per_page
     base_query = base_query.offset(offset).limit(per_page)
-
+    total_pages = math.ceil(total_users_count / per_page)
     # Execute the query
     users = await database.fetch_all(base_query)
-    return users
+    return {
+        "users": users,
+        "total_pages": total_pages
+    }
 
 
 @app.post("/admin/add-user", response_model=dict)

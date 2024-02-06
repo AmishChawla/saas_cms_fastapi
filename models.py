@@ -19,7 +19,6 @@ class UserCreate(BaseModel):
     password: str
     role: str = "user"
 
-
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -28,6 +27,11 @@ class UserResponse(BaseModel):
     created_datetime: datetime
     status: str
     company_id: int
+
+
+class UsersResponse(BaseModel):
+    users: List[UserResponse]
+    total_pages: int
 
 
 class ResumeDataBase(BaseModel):
