@@ -2,9 +2,10 @@ import datetime
 import io
 import json
 import tempfile
+from idlelib.query import Query
 
 from pdfminer.high_level import extract_text
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body,Query
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
@@ -21,7 +22,7 @@ from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminI
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
-from sqlalchemy import update
+from sqlalchemy import update, select
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
@@ -222,14 +223,24 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
 
 # Protected route accessible only to users with the "admin" role
 @app.get("/admin/users", response_model=List[UserResponse])
-async def get_all_users(token: str = Depends(oauth2_scheme)):
+async def get_all_users(
+        page: int = Query(1, gt=0, description="Page number"),
+        per_page: int = Query(10, gt=0, le=100, description="Items per page"),
+        token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
+
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    query = User.__table__.select().where(User.company_id == current_user.company_id)
+    base_query = select(User).where(User.company_id == current_user.company_id)
+    # query = User.__table__.select().where(User.company_id == current_user.company_id)
     # where(User.email == user.email)
-    users = await database.fetch_all(query)
+
+    offset = (page - 1) * per_page
+    base_query = base_query.offset(offset).limit(per_page)
+
+    # Execute the query
+    users = await database.fetch_all(base_query)
     return users
 
 
