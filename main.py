@@ -220,16 +220,16 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
     }
 
 
-@app.get("/admin/users", response_model=UsersResponse)
+@app.get("/admin/users")
 async def get_all_users(
         token: str = Depends(oauth2_scheme),
-        page: int = Query(1, ge=1, description="Page number"),
-        per_page: int = Query(10, ge=1, le=100, description="Items per page"),
-        username_filter: str = Query(None, description="Filter by username"),
-        email_filter: str = Query(None, description="Filter by email"),
-        role_filter: str = Query(None, description="Filter by role"),
-        status_filter: str = Query(None, description="Filter by status"),
-        search_filter: str = Query(None, description="Filter by seach keyword"),
+        # page: int = Query(1, ge=1, description="Page number"),
+        # per_page: int = Query(10, ge=1, le=100, description="Items per page"),
+        # username_filter: str = Query(None, description="Filter by username"),
+        # email_filter: str = Query(None, description="Filter by email"),
+        # role_filter: str = Query(None, description="Filter by role"),
+        # status_filter: str = Query(None, description="Filter by status"),
+        # search_filter: str = Query(None, description="Filter by seach keyword"),
 ):
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
@@ -237,37 +237,37 @@ async def get_all_users(
 
     # Build the base query
     base_query = select(User).where(User.company_id == current_user.company_id)
-
-    # Apply filters
-    if search_filter:
-        search_condition = (User.username.ilike(f"%{search_filter}%")) | (User.email.ilike(f"%{search_filter}%"))
-        base_query = base_query.where(search_condition)
-    if username_filter:
-        base_query = base_query.where(User.username.ilike(f"%{username_filter}%"))
-    if email_filter:
-        base_query = base_query.where(User.email.ilike(f"%{email_filter}%"))
-    if role_filter:
-        if role_filter =='all':
-            base_query = base_query
-        else:
-            base_query = base_query.where(User.role == role_filter)
-    if status_filter:
-        if status_filter =='all':
-            base_query = base_query
-        else:
-            base_query = base_query.where(User.status == status_filter)
-
-    # Count the total number of users (before pagination)
-    total_users_count = await database.execute(base_query.with_only_columns([func.count()]))
-    total_pages = math.ceil(total_users_count / per_page)
-    # Apply pagination
-    offset = (page - 1) * per_page
-    base_query = base_query.offset(offset).limit(per_page)
-
+    #
+    # # Apply filters
+    # if search_filter:
+    #     search_condition = (User.username.ilike(f"%{search_filter}%")) | (User.email.ilike(f"%{search_filter}%"))
+    #     base_query = base_query.where(search_condition)
+    # if username_filter:
+    #     base_query = base_query.where(User.username.ilike(f"%{username_filter}%"))
+    # if email_filter:
+    #     base_query = base_query.where(User.email.ilike(f"%{email_filter}%"))
+    # if role_filter:
+    #     if role_filter =='all':
+    #         base_query = base_query
+    #     else:
+    #         base_query = base_query.where(User.role == role_filter)
+    # if status_filter:
+    #     if status_filter =='all':
+    #         base_query = base_query
+    #     else:
+    #         base_query = base_query.where(User.status == status_filter)
+    #
+    # # Count the total number of users (before pagination)
+    # total_users_count = await database.execute(base_query.with_only_columns([func.count()]))
+    # total_pages = math.ceil(total_users_count / per_page)
+    # # Apply pagination
+    # offset = (page - 1) * per_page
+    # base_query = base_query.offset(offset).limit(per_page)
+    #
     # Execute the query
     result = await database.fetch_all(base_query)
 
-    return {"users": result, "total_pages": total_pages}
+    return {"users": result}
 
 
 
