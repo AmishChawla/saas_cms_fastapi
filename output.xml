@@ -1,103 +1,84 @@
 <?xml version="1.0" ?>
 <data>
     <resume>
-        <name>Amish Chawla</name>
-        <email>amishchawla8@gmail.com</email>
-        <mobile_number>8130261379</mobile_number>
-        <skills>Mathematics</skills>
-        <skills>Html</skills>
-        <skills>Ux</skills>
-        <skills>Python</skills>
-        <skills>Flask</skills>
-        <skills>Api</skills>
-        <skills>Strategy</skills>
-        <skills>Analytics</skills>
-        <skills>Php</skills>
-        <skills>C</skills>
-        <skills>Engineering</skills>
-        <skills>Website</skills>
-        <skills>Mysql</skills>
-        <skills>Coding</skills>
-        <skills>Certification</skills>
-        <skills>C++</skills>
-        <skills>System</skills>
-        <skills>Mobile</skills>
-        <skills>Access</skills>
-        <skills>Rest</skills>
-        <skills>Javascript</skills>
-        <skills>Css</skills>
-        <skills>Cloud</skills>
-        <skills>Programming</skills>
-        <skills>Ui</skills>
-        <skills>Java</skills>
-        <skills>Analysis</skills>
-        <skills>Database</skills>
-        <skills>Design</skills>
-        <skills>Algorithms</skills>
-        <college_name>None</college_name>
-        <degree>B. E.</degree>
-        <designation>None</designation>
-        <experience>•  Weather Application :(Technologies used: Flutter, Dart, REST API integration, UI design , Aug 2021):</experience>
-        <experience>Developed a weather application using Flutter and Dart, integrating with the Open Weather API to collect and</experience>
-        <experience>display real-time weather data. The app provides information such as current temperature, humidity, pressure, wind</experience>
-        <experience>speed, and feels like temperature. Implemented a user-friendly interface to present the weather data in an easily</experience>
-        <experience>readable format.</experience>
-        <experience>INTERNSHIPS:</experience>
-        <experience>•  Aynsoft (June 2022): Developed a Flutter application that empowered small business owners to sell their</experience>
-        <experience>products online. Implemented essential features, including product listing. Collaborated with a team to integrate</experience>
-        <experience>banner ads using Google AdMob for monetization. Implemented user authentication functionality through REST</experience>
-        <experience>API, enabling login/signup for users. Demonstrated strong problem-solving skills, teamwork, and adaptability in an</experience>
-        <experience>internship setting.</experience>
-        <experience>POSITION OF RESPONSIBILITY</experience>
-        <experience>•  Volunteer at Top Healers – Helped in organising and conduction of healing camps.(December 2023)</experience>
-        <experience>EXTRA CURRICULAR ACHIEVEMENTS</experience>
-        <experience>•  Provided personalized academic support and tutoring services to 8 grade students.</experience>
-        <experience>•  Participated in several Table tennis competitions during school.</experience>
-        <experience>ADDITIONAL INFORMATION</experience>
-        <experience>Preferred Programming Language: JAVA</experience>
-        <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
-        <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
-        <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
-        <company_names>III</company_names>
-        <company_names>F. E.</company_names>
-        <no_of_pages>2</no_of_pages>
-        <total_experience>0.0</total_experience>
-    </resume>
-    <resume>
-        <name>Aryan Yashwant</name>
+        <name>Name:</name>
         <email>aryanlakde@gmail.com</email>
         <mobile_number>8451870221</mobile_number>
         <skills>User experience</skills>
-        <skills>Mathematics</skills>
-        <skills>Html</skills>
-        <skills>English</skills>
-        <skills>Tkinter</skills>
-        <skills>Python</skills>
-        <skills>Strategy</skills>
-        <skills>Php</skills>
-        <skills>Analytics</skills>
         <skills>C</skills>
-        <skills>Engineering</skills>
-        <skills>Mysql</skills>
-        <skills>Certification</skills>
-        <skills>Swift</skills>
-        <skills>Architecture</skills>
-        <skills>System</skills>
-        <skills>Mobile</skills>
-        <skills>Ordering</skills>
-        <skills>Video</skills>
+        <skills>English</skills>
         <skills>Html5</skills>
+        <skills>Certification</skills>
+        <skills>Strategy</skills>
+        <skills>Mobile</skills>
         <skills>Javascript</skills>
-        <skills>Css</skills>
-        <skills>Programming</skills>
-        <skills>Java</skills>
+        <skills>Php</skills>
+        <skills>Mathematics</skills>
         <skills>Analysis</skills>
+        <skills>Mysql</skills>
+        <skills>System</skills>
+        <skills>Video</skills>
+        <skills>Programming</skills>
+        <skills>Html</skills>
+        <skills>Ordering</skills>
+        <skills>Java</skills>
+        <skills>Tkinter</skills>
+        <skills>Architecture</skills>
+        <skills>Swift</skills>
+        <skills>Analytics</skills>
+        <skills>Css</skills>
+        <skills>Python</skills>
+        <skills>Engineering</skills>
         <college_name>None</college_name>
         <degree>None</degree>
         <designation>None</designation>
         <experience>None</experience>
         <company_names>None</company_names>
-        <no_of_pages>2</no_of_pages>
+        <no_of_pages>None</no_of_pages>
+        <total_experience>0</total_experience>
+    </resume>
+    <resume>
+        <name>Amish Chawla</name>
+        <email>amishchawla8@gmail.com</email>
+        <mobile_number>8130261379</mobile_number>
+        <skills>Access</skills>
+        <skills>C</skills>
+        <skills>Technical</skills>
+        <skills>Rest</skills>
+        <skills>Database</skills>
+        <skills>Javascript</skills>
+        <skills>Php</skills>
+        <skills>Ui</skills>
+        <skills>Api</skills>
+        <skills>Github</skills>
+        <skills>Numpy</skills>
+        <skills>Analysis</skills>
+        <skills>Flask</skills>
+        <skills>Mysql</skills>
+        <skills>System</skills>
+        <skills>Matlab</skills>
+        <skills>Programming</skills>
+        <skills>Seaborn</skills>
+        <skills>Html</skills>
+        <skills>Design</skills>
+        <skills>Cloud</skills>
+        <skills>Java</skills>
+        <skills>Algorithms</skills>
+        <skills>Pandas</skills>
+        <skills>Ux</skills>
+        <skills>C++</skills>
+        <skills>Coding</skills>
+        <skills>Website</skills>
+        <skills>Software engineering</skills>
+        <skills>Css</skills>
+        <skills>Python</skills>
+        <skills>Engineering</skills>
+        <college_name>None</college_name>
+        <degree>None</degree>
+        <designation>None</designation>
+        <experience>None</experience>
+        <company_names>None</company_names>
+        <no_of_pages>None</no_of_pages>
         <total_experience>0</total_experience>
     </resume>
 </data>

@@ -29,7 +29,7 @@ from starlette.templating import Jinja2Templates
 # Initialize FastAPI and database
 app = FastAPI(
     docs_url="/docs",
-    openapi_url='/openapi.json'
+    openapi_url='/openapi.json',
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 templates = Jinja2Templates(directory="templates")
@@ -58,7 +58,7 @@ def index(request: Request):
 
 
 # Routes
-@app.post("/register/{company_name}")
+@app.post("/api/register/{company_name}")
 async def register_user(user: UserCreate, company_name: str = Path(...), company_id: int = Body(...)):
     async with database.transaction():
         # Check if the email is already registered
@@ -93,7 +93,7 @@ async def register_user(user: UserCreate, company_name: str = Path(...), company
         }
 
 
-@app.post("/login", response_model=Token)
+@app.post("/api/login", response_model=Token)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
     query = User.__table__.select().where(User.email == form_data.username)
@@ -124,7 +124,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.put("/update-password")
+@app.put("/api/update-password")
 async def update_password(
         current_password: str,
         new_password: str,
@@ -148,7 +148,7 @@ async def update_password(
     return {"message": "Password updated successfully"}
 
 
-@app.post("/process-resume/")
+@app.post("/api/process-resume/")
 async def process_resume(
 
         pdf_files: List[UploadFile] = File(...),
@@ -203,7 +203,7 @@ async def process_resume(
     }
 
 
-@app.get('/user-profile')
+@app.get('/api/user-profile')
 async def user_profile(token: str = Depends(oauth2_scheme)):
     db = SessionLocal()
     # Ensure that the user and related resume_data are loaded in the same session
@@ -220,7 +220,7 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
     }
 
 
-@app.get("/admin/users")
+@app.get("/api/admin/users")
 async def get_all_users(
         token: str = Depends(oauth2_scheme),
         # page: int = Query(1, ge=1, description="Page number"),
@@ -271,7 +271,7 @@ async def get_all_users(
 
 
 
-@app.post("/admin/add-user", response_model=dict)
+@app.post("/api/admin/add-user", response_model=dict)
 async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
@@ -305,7 +305,7 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
             }
 
 
-@app.delete("/admin/delete-user/{user_id}", response_model=dict)
+@app.delete("/api/admin/delete-user/{user_id}", response_model=dict)
 async def admin_delete_user(
         user_id: int,
         current_user: TokenData = Depends(get_current_user),
@@ -333,7 +333,7 @@ async def admin_delete_user(
     return {"message": "User deleted successfully", "user_id": user_id}
 
 
-@app.post("/admin/login", response_model=Token)
+@app.post("/api/admin/login", response_model=Token)
 async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
 
@@ -367,7 +367,7 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
         return {"access_token": access_token, "token_type": "bearer"}
 
 
-@app.get("/admin/user-files/{user_id}", response_model=dict)
+@app.get("/api/admin/user-files/{user_id}", response_model=dict)
 async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -384,7 +384,7 @@ async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get
     return response_data
 
 
-@app.get('/admin/view-user/{user_id}')
+@app.get('/api/admin/view-user/{user_id}')
 async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -404,7 +404,7 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
 
 
 # Endpoint to initiate the forgot password process
-@app.post("/forgot-password")
+@app.post("/api/forgot-password")
 async def forgot_password(email: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
     if user:
@@ -425,7 +425,7 @@ async def forgot_password(email: str, db: Session = Depends(get_db)):
 
 
 # Endpoint to reset the password based on the provided token
-@app.post("/reset-password")
+@app.post("/api/reset-password")
 async def reset_password(token, new_password, db: Session = Depends(get_db)):
     reset_token = db.query(PasswordReset).filter(PasswordReset.token == token).first()
     if reset_token:
@@ -461,7 +461,7 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
     # # raise HTTPException(status_code=404, detail="Invalid token")
 
 
-@app.put("/admin/edit-user")
+@app.put("/api/admin/edit-user")
 async def edit_user(
         user_id: int,
         username: str,
@@ -482,7 +482,7 @@ async def edit_user(
     }
 
 
-@app.post("/register-admin")
+@app.post("/api/register-admin")
 async def register_admin(admin: AdminInfo):
     async with database.transaction():
         # Check if the email is already registered
@@ -513,7 +513,7 @@ async def register_admin(admin: AdminInfo):
         }
 
 
-@app.post("/register-company")
+@app.post("/api/register-company")
 async def register_company(company: Company, token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
@@ -557,13 +557,13 @@ async def register_company(company: Company, token: str = Depends(oauth2_scheme)
         }
 
 
-@app.get("/companies")
+@app.get("/api/companies")
 async def get_all_users():
     query = Tenant.__table__.select()
     tenants = await database.fetch_all(query)
     return tenants
 
-@app.get("/company/{company_id}")
+@app.get("/api/company/{company_id}")
 async def get_all_users(company_id: int):
     query = Tenant.__table__.select().where(Tenant.id == company_id)
     tenant = await database.fetch_one(query)
