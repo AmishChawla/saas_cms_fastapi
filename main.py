@@ -4,7 +4,7 @@ import json
 import math
 import tempfile
 from pdfminer.high_level import extract_text
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body,Query
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
@@ -93,7 +93,7 @@ async def register_user(user: UserCreate, company_name: str = Path(...), company
         }
 
 
-@app.post("/api/login", response_model=Token)
+@app.post("/api/login", response_model=dict)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
     query = User.__table__.select().where(User.email == form_data.username)
@@ -121,7 +121,14 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
     await database.execute(query)
 
-    return {"access_token": access_token, "token_type": "bearer"}
+    return {
+        "access_token": access_token,
+        "token_type": "bearer",
+        "role": user.role,
+        "username": user.username,
+        "email": user.email,
+        "company_id": user.company_id
+    }
 
 
 @app.put("/api/update-password")
@@ -270,7 +277,6 @@ async def get_all_users(
     return {"users": result}
 
 
-
 @app.post("/api/admin/add-user", response_model=dict)
 async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
@@ -333,7 +339,7 @@ async def admin_delete_user(
     return {"message": "User deleted successfully", "user_id": user_id}
 
 
-@app.post("/api/admin/login", response_model=Token)
+@app.post("/api/admin/login", response_model=dict)
 async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
 
@@ -364,7 +370,14 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
         query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
         await database.execute(query)
 
-        return {"access_token": access_token, "token_type": "bearer"}
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.username,
+            "email": user.email,
+            "company_id": user.company_id
+        }
 
 
 @app.get("/api/admin/user-files/{user_id}", response_model=dict)
@@ -563,11 +576,13 @@ async def get_all_users():
     tenants = await database.fetch_all(query)
     return tenants
 
+
 @app.get("/api/company/{company_id}")
 async def get_all_users(company_id: int):
     query = Tenant.__table__.select().where(Tenant.id == company_id)
     tenant = await database.fetch_one(query)
     return tenant
+
 
 if __name__ == "__main__":
     import uvicorn
