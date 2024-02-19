@@ -199,5 +199,23 @@ def extract_text_from_pdf(pdf_content):
     return text_content
 
 
+def is_service_allowed(user_id: int, service_name: str):
+    """
+    Check if a service is allowed to a user.
+    :param user_id: (int) ID of the user.
+    :param service_name: Name of the service to check.
+    :return: True or false based on is a particular service available to user
+    """
+    db = SessionLocal()
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        return False
+    for service in user.services:
+        if service.name == service_name:
+            return True
+    return False
+
+
+
 
 

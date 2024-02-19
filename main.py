@@ -18,7 +18,7 @@ from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant, Service
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant, Service, UserServices
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company, UsersResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
@@ -110,13 +110,26 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             detail="Insufficient privileges",
             headers={"WWW-Authenticate": "Bearer"},
         )
+    elif user["status"] != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     else:
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
             data={"sub": user.username, "role": user.role},
             expires_delta=access_token_expires
         )
+        sql_query = """
+            SELECT s.*
+            FROM services s
+            INNER JOIN user_services us ON s.service_id = us.service_id
+            WHERE us.user_id = :user_id
+        """
 
+    user_services = await database.fetch_all(sql_query, values={"user_id": user.id})
     query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
     await database.execute(query)
 
@@ -126,7 +139,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         "role": user.role,
         "username": user.username,
         "email": user.email,
-        "company_id": user.company_id
+        "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services]
     }
 
 
@@ -162,6 +175,8 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
+    if not methods.is_service_allowed(user_id=user.id, service_name="resume_parser"):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     pdf_resumes_content = []
     # for pdf_file in pdf_files:
@@ -584,8 +599,19 @@ async def get_all_users(company_id: int):
 
 
 ########################################################## SERVICES ###################################################################################################
-@app.post("/services/create-service")
+@app.post("/api/services/create-service")
 async def create_service(name: str, description: str, db: Session = Depends(get_db)):
+    """
+    Create a service
+
+    Args:
+        name (String): Name of the service
+        description (String): Description of the service
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response giving details of the service.
+    """
     try:
         new_service = Service(name=name, description=description)
         db.add(new_service)
@@ -596,8 +622,18 @@ async def create_service(name: str, description: str, db: Session = Depends(get_
         raise HTTPException(status_code=400, detail="Service with this name already exists")
 
 
-@app.delete("/services/{service_id}")
+@app.delete("/api/services/delete-service/{service_id}")
 async def delete_service(service_id: int, db: Session = Depends(get_db)):
+    """
+    Delete an existing service.
+
+    Args:
+        service_id (int): The ID of the service to be deleted..
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response indicating success or failure.
+    """
     service = db.query(Service).filter(Service.service_id == service_id).first()
     if service:
         db.delete(service)
@@ -606,6 +642,91 @@ async def delete_service(service_id: int, db: Session = Depends(get_db)):
     else:
         raise HTTPException(status_code=404, detail="Service not found")
 
+
+@app.post("/api/users/{user_id}/assign_service/{service_id}")
+async def assign_service_to_user(user_id: int, service_id: int, db: Session = Depends(get_db)):
+    """
+    Assign a service to a user.
+
+    Args:
+        user_id (int): The ID of the user.
+        service_id (int): The ID of the service to be assigned to the user.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response indicating success or failure.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    service = db.query(Service).filter(Service.service_id == service_id).first()
+    if service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    user_service = UserServices(user_id=user_id, service_id=service_id)
+    db.add(user_service)
+    db.commit()
+
+    return {"message": "Service assigned to user successfully"}
+
+
+@app.delete("/api/users/{user_id}/remove_service/{service_id}")
+async def remove_service_from_user(user_id: int, service_id: int, db: Session = Depends(get_db)):
+    """
+    Remove a service from a user.
+
+    Args:
+        user_id (int): The ID of the user.
+        service_id (int): The ID of the service to be removed from the user.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response indicating success or failure.
+    """
+    user_service = db.query(UserServices).filter(UserServices.user_id == user_id,
+                                                 UserServices.service_id == service_id).first()
+    if user_service is None:
+        raise HTTPException(status_code=404, detail="Service not found for this user")
+
+    db.delete(user_service)
+    db.commit()
+
+    return {"message": "Service removed from user successfully"}
+
+
+@app.get("/api/services/all-services")
+async def get_all_services(db: Session = Depends(get_db)):
+    """
+    Get all available services.
+
+    Args:
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        List[Service]: A list of all available services.
+    """
+    services = db.query(Service).all()
+    return services
+
+
+@app.get("/api/users/{user_id}/services")
+async def get_user_services(user_id: int, db: Session = Depends(get_db)):
+    """
+    Get all services associated with a specific user.
+
+    Args:
+        user_id (int): The ID of the user.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        List[Service]: A list of services associated with the user.
+    """
+    user = db.query(User).filter(User.id == user_id).first()
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    return user.services
 
 
 if __name__ == "__main__":
