@@ -58,8 +58,8 @@ def index(request: Request):
 
 
 # Routes
-@app.post("/api/register/{company_name}")
-async def register_user(user: UserCreate, company_name: str = Path(...), company_id: int = Body(...)):
+@app.post("/api/register")
+async def register_user(user: UserCreate):
     async with database.transaction():
         # Check if the email is already registered
         query = User.__table__.select().where(User.email == user.email)
@@ -75,7 +75,6 @@ async def register_user(user: UserCreate, company_name: str = Path(...), company
             role=user.role,
             status="active",
             created_datetime=datetime.datetime.utcnow(),
-            company_id=company_id
 
         ))
 
@@ -88,8 +87,6 @@ async def register_user(user: UserCreate, company_name: str = Path(...), company
             "role": inserted_user["role"],
             "created_datetime": inserted_user["created_datetime"],
             "status": inserted_user["status"],
-            "company_id": inserted_user["company_id"],
-            "company_name": company_name
         }
 
 

@@ -1,6 +1,6 @@
 
 
-from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime, ARRAY
+from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime, ARRAY, Text, Boolean
 from sqlalchemy.orm import relationship
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
@@ -32,6 +32,25 @@ class User(Base):
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     pdf_files = relationship("PDFFiles", back_populates="user")
+    services = relationship("Service", secondary="user_services")
+
+
+class Service(Base):
+    __tablename__ = 'services'
+
+    service_id = Column(Integer, primary_key=True)
+    name = Column(String)
+    description = Column(Text)
+
+    users = relationship("User", secondary="user_services")
+
+class UserServices(Base):
+    __tablename__ = 'user_services'
+
+    user_service_id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    service_id = Column(Integer, ForeignKey('services.service_id'))
+
 
 class Tenant(Base):
     __tablename__ = "tenants"
