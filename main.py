@@ -373,7 +373,12 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
             detail="Insufficient privileges",
             headers={"WWW-Authenticate": "Bearer"},
         )
-
+    elif user["status"] != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
     else:
         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
         access_token = create_access_token(
@@ -727,6 +732,62 @@ async def get_user_services(user_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="User not found")
 
     return user.services
+
+
+@app.put("/api/services/update-service/{service_id}")
+async def update_service(service_id: int, service_data: dict, db: Session = Depends(get_db)):
+    """
+    Update an existing service.
+
+    Args:
+        service_id (int): The ID of the service to be updated.
+        service_data (dict): The updated service data.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response indicating success or failure.
+    """
+    # Retrieve the service from the database
+    service = db.query(Service).filter(Service.service_id == service_id).first()
+    if service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    # Update the service attributes
+    for key, value in service_data.items():
+        setattr(service, key, value)
+
+    # Commit the changes to the database
+    db.commit()
+
+    return {"message": "Service updated successfully"}
+
+
+@app.get("/api/services/{service_id}")
+async def get_service(service_id: int, db: Session = Depends(get_db)):
+    """
+    Get information about a particular service by its ID.
+
+    Args:
+        service_id (int): The ID of the service to retrieve.
+        db (Session, optional): The database session. Defaults to Depends(get_db).
+
+    Returns:
+        dict: A JSON response containing information about the service.
+    """
+    # Retrieve the service from the database
+    service = db.query(Service).filter(Service.service_id == service_id).first()
+    if service is None:
+        raise HTTPException(status_code=404, detail="Service not found")
+
+    # Convert the service object to a dictionary
+    service_info = {
+        "service_id": service.service_id,
+        "service_name": service.name,
+        "service_description": service.description,
+        # Add more attributes as needed
+    }
+
+    return service_info
 
 
 if __name__ == "__main__":
