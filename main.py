@@ -11,12 +11,14 @@ from fastapi.openapi.docs import (
     get_swagger_ui_oauth2_redirect_html,
 )
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.exc import IntegrityError
+
 from databases import Database
 from datetime import timedelta
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant, Service
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company, UsersResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
@@ -579,6 +581,31 @@ async def get_all_users(company_id: int):
     query = Tenant.__table__.select().where(Tenant.id == company_id)
     tenant = await database.fetch_one(query)
     return tenant
+
+
+########################################################## SERVICES ###################################################################################################
+@app.post("/services/create-service")
+async def create_service(name: str, description: str, db: Session = Depends(get_db)):
+    try:
+        new_service = Service(name=name, description=description)
+        db.add(new_service)
+        db.commit()
+        db.refresh(new_service)
+        return new_service
+    except IntegrityError:
+        raise HTTPException(status_code=400, detail="Service with this name already exists")
+
+
+@app.delete("/services/{service_id}")
+async def delete_service(service_id: int, db: Session = Depends(get_db)):
+    service = db.query(Service).filter(Service.service_id == service_id).first()
+    if service:
+        db.delete(service)
+        db.commit()
+        return {"message": "Service deleted successfully"}
+    else:
+        raise HTTPException(status_code=404, detail="Service not found")
+
 
 
 if __name__ == "__main__":
