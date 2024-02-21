@@ -499,6 +499,7 @@ async def edit_user(
         username: str,
         role: str,
         status: str,
+
         token: str = Depends(oauth2_scheme)
 ):
     # Verify token and get user from the database
@@ -506,14 +507,18 @@ async def edit_user(
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    query = update(User.__table__).where(User.id == user_id).values(username=username, role=role, status=status)
+    # Update the user's basic information
+    query = update(User.__table__).where(User.id == user_id).values(
+        username=username, role=role, status=status
+    )
     await database.execute(query)
+
+    # Update user services (assuming there's a Many-to-Many relationship between User and Services)
+
 
     return {
         "message": "User updated successfully"
     }
-
-
 @app.post("/api/register-admin")
 async def register_admin(admin: AdminInfo):
     async with database.transaction():
@@ -648,33 +653,41 @@ async def delete_service(service_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Service not found")
 
 
-@app.post("/api/users/{user_id}/assign_service/{service_id}")
-async def assign_service_to_user(user_id: int, service_id: int, db: Session = Depends(get_db)):
+@app.post("/api/users/assign_services")
+async def assign_services_to_user(user_id: int, service_ids: List[int], db: Session = Depends(get_db)):
     """
-    Assign a service to a user.
+    Assign multiple services to a user.
 
     Args:
         user_id (int): The ID of the user.
-        service_id (int): The ID of the service to be assigned to the user.
+        service_ids (List[int]): A list of service IDs to be assigned to the user.
         db (Session, optional): The database session. Defaults to Depends(get_db).
 
     Returns:
         dict: A JSON response indicating success or failure.
     """
+    # Fetch the user from the database
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
 
-    service = db.query(Service).filter(Service.service_id == service_id).first()
-    if service is None:
-        raise HTTPException(status_code=404, detail="Service not found")
+    # Fetch services from the database based on service_ids
+    services = db.query(Service).filter(Service.service_id.in_(service_ids)).all()
 
-    user_service = UserServices(user_id=user_id, service_id=service_id)
-    db.add(user_service)
+    if len(services) != len(service_ids):
+        raise HTTPException(status_code=404, detail="Some services not found")
+
+    # Clear existing user services
+    db.query(UserServices).filter(UserServices.user_id == user_id).delete()
+
+    # Assign services to the user
+    for service_id in service_ids:
+        user_service = UserServices(user_id=user_id, service_id=service_id)
+        db.add(user_service)
+
     db.commit()
 
-    return {"message": "Service assigned to user successfully"}
-
+    return {"message": "Services assigned to user successfully"}
 
 @app.delete("/api/users/{user_id}/remove_service/{service_id}")
 async def remove_service_from_user(user_id: int, service_id: int, db: Session = Depends(get_db)):
