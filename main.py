@@ -16,10 +16,10 @@ from sqlalchemy.exc import IntegrityError
 from databases import Database
 from datetime import timedelta
 from typing import List
-from sqlalchemy.orm import Session, joinedload
+from sqlalchemy.orm import Session, joinedload, selectinload
 import methods
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Tenant, Service, UserServices
-from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, Company, UsersResponse
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Service, UserServices, Company
+from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
@@ -132,6 +132,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
     user_services = await database.fetch_all(sql_query, values={"user_id": user.id})
     query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
     await database.execute(query)
+    company_query = Company.__table__.select().where(Company.user_id == user.id)
+    company = await database.fetch_one(company_query)
 
     return {
         "access_token": access_token,
@@ -139,7 +141,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         "role": user.role,
         "username": user.username,
         "email": user.email,
-        "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services]
+        "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
+        "company": company
     }
 
 
@@ -244,51 +247,22 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
 @app.get("/api/admin/users")
 async def get_all_users(
         token: str = Depends(oauth2_scheme),
-        # page: int = Query(1, ge=1, description="Page number"),
-        # per_page: int = Query(10, ge=1, le=100, description="Items per page"),
-        # username_filter: str = Query(None, description="Filter by username"),
-        # email_filter: str = Query(None, description="Filter by email"),
-        # role_filter: str = Query(None, description="Filter by role"),
-        # status_filter: str = Query(None, description="Filter by status"),
-        # search_filter: str = Query(None, description="Filter by seach keyword"),
 ):
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
 
-    # Build the base query
-    base_query = select(User).where(User.company_id == current_user.company_id)
-    #
-    # # Apply filters
-    # if search_filter:
-    #     search_condition = (User.username.ilike(f"%{search_filter}%")) | (User.email.ilike(f"%{search_filter}%"))
-    #     base_query = base_query.where(search_condition)
-    # if username_filter:
-    #     base_query = base_query.where(User.username.ilike(f"%{username_filter}%"))
-    # if email_filter:
-    #     base_query = base_query.where(User.email.ilike(f"%{email_filter}%"))
-    # if role_filter:
-    #     if role_filter =='all':
-    #         base_query = base_query
-    #     else:
-    #         base_query = base_query.where(User.role == role_filter)
-    # if status_filter:
-    #     if status_filter =='all':
-    #         base_query = base_query
-    #     else:
-    #         base_query = base_query.where(User.status == status_filter)
-    #
-    # # Count the total number of users (before pagination)
-    # total_users_count = await database.execute(base_query.with_only_columns([func.count()]))
-    # total_pages = math.ceil(total_users_count / per_page)
-    # # Apply pagination
-    # offset = (page - 1) * per_page
-    # base_query = base_query.offset(offset).limit(per_page)
-    #
-    # Execute the query
-    result = await database.fetch_all(base_query)
+    # Build the query to fetch users and their associated companies
+    db = SessionLocal()
+    users_with_company = (
+        db.query(User)
+        .outerjoin(Company, User.id == Company.user_id)
+        .options(joinedload(User.company))
+        .all()
+    )
+    return users_with_company
 
-    return {"users": result}
+
 
 
 @app.post("/api/admin/add-user", response_model=dict)
@@ -312,7 +286,6 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
                 hashed_password=get_password_hash(user.password),
                 role=user.role,
                 status="active",
-                company_id=current_user.company_id
             ))
 
             return {
@@ -321,7 +294,6 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
                 "username": user.username,
                 "email": user.email,
                 "role": user.role,
-                "company_id": current_user.company_id
             }
 
 
@@ -395,7 +367,6 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
             "role": user.role,
             "username": user.username,
             "email": user.email,
-            "company_id": user.company_id
         }
 
 
@@ -549,63 +520,6 @@ async def register_admin(admin: AdminInfo):
             "status": inserted_user["status"],
         }
 
-
-@app.post("/api/register-company")
-async def register_company(company: Company, token: str = Depends(oauth2_scheme)):
-    current_user = get_user_from_token(token)
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Permission denied")
-    async with database.transaction():
-        # Check if the email is already registered
-        query = Tenant.__table__.select().where(Tenant.email == company.email)
-        existing_company = await database.fetch_one(query)
-        if existing_company:
-            raise HTTPException(status_code=400, detail="Email already registered")
-
-        # Create a new user
-        db_user = await database.execute(Tenant.__table__.insert().values(
-            name=company.name,
-            email=company.email,
-            phone_no=company.phone_no,
-            address=company.address,
-            description=company.description,
-            admin_id=current_user.id,
-            status="active"
-        ))
-
-        inserted_user = await database.fetch_one(Tenant.__table__.select().where(Tenant.id == db_user))
-        print(current_user.company_id, current_user.status, current_user.email)
-        print(inserted_user["id"])
-        current_user.company_id = inserted_user["id"]
-        print(current_user.company_id, current_user.status, current_user.email)
-        query = update(User.__table__).where(User.id == current_user.id).values(company_id=inserted_user["id"])
-        await database.execute(query)
-        print(current_user.id, current_user.company_id, current_user.status, current_user.email)
-        return {
-            "id": inserted_user["id"],
-            "name": inserted_user["name"],
-            "email": inserted_user["email"],
-            "phone_no": inserted_user["phone_no"],
-            "address": inserted_user["address"],
-            "description": inserted_user["description"],
-            "created_datetime": inserted_user["created_datetime"],
-            "status": inserted_user["status"],
-            "admin_id": inserted_user["admin_id"],
-        }
-
-
-@app.get("/api/companies")
-async def get_all_users():
-    query = Tenant.__table__.select()
-    tenants = await database.fetch_all(query)
-    return tenants
-
-
-@app.get("/api/company/{company_id}")
-async def get_all_users(company_id: int):
-    query = Tenant.__table__.select().where(Tenant.id == company_id)
-    tenant = await database.fetch_one(query)
-    return tenant
 
 
 ########################################################## SERVICES ###################################################################################################
@@ -801,6 +715,136 @@ async def get_service(service_id: int, db: Session = Depends(get_db)):
     }
 
     return service_info
+
+########################################################################## COMPNIES ###########################################################################
+
+# Endpoint to create new company
+@app.post("/api/companies/create-company")
+def create_company(name: str, location: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Create Company
+
+    Endpoint: POST api/companies/create-company
+    Description: Creates a new company with the provided name, location, and user ID.
+    Parameters:
+    name: Name of the company (string)
+    location: Location of the company (string)
+    Returns: The newly created company object.
+    """
+
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    # Create the company
+    company = Company(name=name, location=location, user_id=current_user.id)
+    db.add(company)
+    db.commit()
+    db.refresh(company)
+
+    return {
+        "id": company.id,
+        "name": company.name,
+        "location": company.location,
+        "user_id": company.user_id
+    }
+# Endpoint to remove a company by its ID
+@app.delete("/api/companies/delete-company/{company_id}")
+def delete_company(company_id: int, db: Session = Depends(get_db)):
+    """
+    Delete Company
+
+    Endpoint: DELETE /companies/{company_id}
+    Description: Deletes the company with the specified ID.
+    Parameters:
+    company_id: ID of the company to delete (integer)
+    Returns: A message indicating the deletion was successful.
+    """
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    db.delete(company)
+    db.commit()
+    return {"message": "Company deleted successfully"}
+
+# Endpoint to update a company's information
+@app.put("/api/companies/update-company/{company_id}")
+def update_company(company_id: int, name: str = None, location: str = None, db: Session = Depends(get_db)):
+    """
+Update Company
+
+Endpoint: PUT /companies/{company_id}
+Description: Updates the information of the company with the specified ID.
+Parameters:
+company_id: ID of the company to update (integer)
+name (optional): New name of the company (string)
+location (optional): New location of the company (string)
+Returns: The updated company object.
+    """
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    if name:
+        company.name = name
+    if location:
+        company.location = location
+    db.commit()
+    db.refresh(company)
+    return company
+
+# Endpoint to get information about a specific company
+@app.get("/api/companies/{company_id}")
+def get_company(company_id: int, db: Session = Depends(get_db)):
+    """
+    Get Company
+
+Endpoint: GET /companies/{company_id}
+Description: Retrieves information about the company with the specified ID.
+Parameters:
+company_id: ID of the company to retrieve (integer)
+Returns: The company object containing its name, location, and associated user ID.
+"""
+    company = db.query(Company).filter(Company.id == company_id).first()
+    if not company:
+        raise HTTPException(status_code=404, detail="Company not found")
+    return company
+
+# Endpoint to get the company of a user
+@app.get("/api/user/company/")
+def get_user_company(token: str = Depends(oauth2_scheme)):
+    """
+    Get company of the user
+    :param db: Database session
+    :param token: User token
+    :return: Company details
+    """
+    db = SessionLocal()
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    company = db.query(Company).filter(Company.user_id == user.id).first()
+
+    # If company is not found, raise HTTP exception
+    if not company:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User has not registered a company")
+
+    # Return the company details
+    return company
+
+# Endpoint to get all companies
+@app.get("/api/companies/")
+def get_all_companies(db: Session = Depends(get_db)):
+    """
+    Get All Companies
+
+    Endpoint: GET /api/companies/
+    Description: Retrieves all companies from the database.
+    Returns: List of all companies.
+    """
+
+    companies = db.query(Company).all()
+    return companies
 
 
 if __name__ == "__main__":

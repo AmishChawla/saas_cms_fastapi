@@ -26,13 +26,14 @@ class User(Base):
     token = Column(String, default="")
     created_datetime = Column(DateTime(timezone=True), server_default=func.now())
     status = Column(String, default="active", index=True)
-    company_id = Column(Integer, ForeignKey('tenants.id'))
 
-    tenant = relationship("Tenant", back_populates="users")
+
+
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     pdf_files = relationship("PDFFiles", back_populates="user")
     services = relationship("Service", secondary="user_services")
+    company = relationship("Company", back_populates="user")
 
 
 class Service(Base):
@@ -50,21 +51,6 @@ class UserServices(Base):
     user_service_id = Column(Integer, primary_key=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     service_id = Column(Integer, ForeignKey('services.service_id'))
-
-
-class Tenant(Base):
-    __tablename__ = "tenants"
-    id = Column(Integer, primary_key=True, index=True)
-    name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
-    created_datetime = Column(DateTime(timezone=True), server_default=func.now())
-    phone_no = Column(String, unique=True, index=True)
-    address = Column(String, index=True)
-    description = Column(String, index=True)
-    admin_id = Column(Integer, index=True)
-    status = Column(String, default="active", index=True)
-
-    users = relationship("User", back_populates="tenant")
 
 
 class ResumeData(Base):
@@ -102,6 +88,16 @@ class PDFFiles(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="pdf_files")
+
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    location = Column(String)
+    user_id = Column(Integer, ForeignKey("users.id"))
+    user = relationship("User", back_populates="company")
 
 
 

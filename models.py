@@ -69,9 +69,16 @@ class AdminInfo(BaseModel):
 
 class Company(BaseModel):
     name: str
+    location: str
+    user_id: int
+
+class UserCompanyResponse(BaseModel):
+    id: int
+    username: str
     email: str
-    phone_no: str
-    address: str
-    description: str
+    role: str
     created_datetime: datetime
     status: str
+    company_id: int = None
+    company_name: str = None
+    company_location: str = None
