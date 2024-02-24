@@ -122,28 +122,37 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             data={"sub": user.username, "role": user.role},
             expires_delta=access_token_expires
         )
-        sql_query = """
+
+        # Fetch user services
+        user_services_query = """
             SELECT s.*
             FROM services s
             INNER JOIN user_services us ON s.service_id = us.service_id
             WHERE us.user_id = :user_id
         """
+        user_services = await database.fetch_all(user_services_query, values={"user_id": user.id})
 
-    user_services = await database.fetch_all(sql_query, values={"user_id": user.id})
-    query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
-    await database.execute(query)
-    company_query = Company.__table__.select().where(Company.user_id == user.id)
-    company = await database.fetch_one(company_query)
+        # Fetch company details
+        company_query = """
+            SELECT c.*
+            FROM companies c
+            WHERE c.user_id = :user_id
+        """
+        company = await database.fetch_one(company_query, values={"user_id": user.id})
 
-    return {
-        "access_token": access_token,
-        "token_type": "bearer",
-        "role": user.role,
-        "username": user.username,
-        "email": user.email,
-        "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
-        "company": company
-    }
+        # Update user token
+        query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
+        await database.execute(query)
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.username,
+            "email": user.email,
+            "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
+            "company": {"id": company["id"], "name": company["name"]} if company else None
+        }
 
 
 @app.put("/api/update-password")
