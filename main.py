@@ -242,6 +242,23 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(token=token).first()
 
+    # Fetch user services
+    user_services_query = """
+        SELECT s.*
+        FROM services s
+        INNER JOIN user_services us ON s.service_id = us.service_id
+        WHERE us.user_id = :user_id
+    """
+    user_services = await database.fetch_all(user_services_query, values={"user_id": user.id})
+
+    # Fetch company details
+    company_query = """
+        SELECT c.*
+        FROM companies c
+        WHERE c.user_id = :user_id
+    """
+    company = await database.fetch_one(company_query, values={"user_id": user.id})
+
     return {
         "id": user.id,
         "username": user.username,
@@ -249,7 +266,9 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
         "role": user.role,
         "token": user.token,
         "resume_data": user.resume_data,
-        "status": user.status
+        "status": user.status,
+        "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
+        "company": {"id": company["id"], "name": company["name"]} if company else None
     }
 
 
