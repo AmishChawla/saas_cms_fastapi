@@ -904,19 +904,19 @@ def get_resume_history(db: Session = Depends(get_db)):
 
 
 ###################################### UPDATE USER PROFILE ######################################
-@app.put("/users/{user_id}/profile")
-async def update_user_profile(
-    user_id: int,
+@app.put("/api/update-profile")
+async def update_profile(
     profile_picture: UploadFile = File(None),
     username: Optional[str] = Form(None),
     email: Optional[str] = Form(None),
-    hashed_password: Optional[str] = Form(None)
+    password: Optional[str] = Form(None),
+    token: str = Depends(oauth2_scheme)
 ):
     # Open database session
     db = SessionLocal()
     try:
         # Get the user from the database
-        user = db.query(User).filter(User.id == user_id).first()
+        user = get_user_from_token(token)
         if not user:
             return {"message": "User not found"}
 
@@ -930,8 +930,8 @@ async def update_user_profile(
             user.username = username
         if email:
             user.email = email
-        if hashed_password:
-            user.hashed_password = hashed_password
+        if password:
+            user.hashed_password = methods.get_password_hash(password)
 
         # Commit changes to the database
         db.commit()
