@@ -1,5 +1,6 @@
 import os
 import tempfile
+import uuid
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from smtplib import SMTP_SSL, SMTP
@@ -14,6 +15,8 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from starlette.responses import JSONResponse
 
+import models
+import schemas
 from constants import SECRET_KEY, ALGORITHM, EMAIL, EMAIL_PASSWORD
 from sqlalchemy.orm import Session
 
@@ -214,6 +217,26 @@ def is_service_allowed(user_id: int, service_name: str):
         if service.name == service_name:
             return True
     return False
+
+
+def get_all_resume_data(db: Session):
+    return db.query(schemas.ResumeData).all()
+
+
+def save_profile_picture(file: UploadFile) -> str:
+    # Generate a unique identifier
+    unique_id = uuid.uuid4().hex
+    # Extract file extension
+    file_ext = os.path.splitext(file.filename)[1]
+    # Construct new filename with unique identifier
+    new_filename = f"profile_picture_{unique_id}{file_ext}"
+    # Define file location
+    file_location = f"profile_pictures/{new_filename}"
+    # Save the file
+    with open(file_location, "wb") as buffer:
+        buffer.write(file.file.read())
+
+    return file_location
 
 
 

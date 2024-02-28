@@ -4,7 +4,7 @@ import json
 import math
 import tempfile
 from pdfminer.high_level import extract_text
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query, Form
 from fastapi.openapi.docs import (
     get_redoc_html,
     get_swagger_ui_html,
@@ -15,9 +15,10 @@ from sqlalchemy.exc import IntegrityError
 
 from databases import Database
 from datetime import timedelta
-from typing import List
+from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload, selectinload
 import methods
+import models
 from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Service, UserServices, Company
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -114,6 +115,12 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         raise HTTPException(
             status_code=status.HTTP_401_UNAUTHORIZED,
             detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user["status"] == "deleted":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
             headers={"WWW-Authenticate": "Bearer"},
         )
     else:
@@ -286,6 +293,28 @@ async def get_all_users(
         db.query(User)
         .outerjoin(Company, User.id == Company.user_id)
         .options(joinedload(User.company))
+        .filter(User.status != "deleted")  # Exclude users with status "deleted"
+        .all()
+    )
+    return users_with_company
+
+
+################################# GET ALL DELETED USERS #########################
+@app.get("/api/admin/deleted-users")
+async def get_all_deleted_users(
+        token: str = Depends(oauth2_scheme),
+):
+    current_user = get_user_from_token(token)
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    # Build the query to fetch users and their associated companies
+    db = SessionLocal()
+    users_with_company = (
+        db.query(User)
+        .outerjoin(Company, User.id == Company.user_id)
+        .options(joinedload(User.company))
+        .filter(User.status == "deleted")  # Exclude users with status "deleted"
         .all()
     )
     return users_with_company
@@ -293,6 +322,7 @@ async def get_all_users(
 
 
 
+################################# ADD USER #########################
 @app.post("/api/admin/add-user", response_model=dict)
 async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
@@ -324,7 +354,7 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
                 "role": user.role,
             }
 
-
+################################# DELETE USER #########################
 @app.delete("/api/admin/delete-user/{user_id}", response_model=dict)
 async def admin_delete_user(
         user_id: int,
@@ -340,19 +370,18 @@ async def admin_delete_user(
 
     # Check if the user to be deleted exists
     user_to_delete = db.query(User).filter(User.id == user_id).first()
-    if not user_to_delete:
+    if user_to_delete.status =="deleted":
         raise HTTPException(status_code=404, detail="User not found")
 
     # Delete the associated records in the ResumeData table
-    db.query(ResumeData).filter(ResumeData.user_id == user_id).delete()
 
     # Delete the user
-    db.delete(user_to_delete)
+    user_to_delete.status = "deleted"
     db.commit()
 
     return {"message": "User deleted successfully", "user_id": user_id}
 
-
+################################# ADMIN LOGIN #########################
 @app.post("/api/admin/login", response_model=dict)
 async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
     # Authenticate user using email
@@ -398,23 +427,7 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
         }
 
 
-@app.get("/api/admin/user-files/{user_id}", response_model=dict)
-async def get_user_files_api(user_id: int, current_user: TokenData = Depends(get_current_user)):
-    if current_user.role != "admin":
-        raise HTTPException(status_code=403, detail="Permission denied")
-
-    # Retrieve CSV files for the user
-    csv_files = methods.get_user_files(user_id=user_id)
-
-    response_data = {
-        "user_id": user_id,
-        "csv_files": csv_files
-        # Add other fields as needed
-    }
-
-    return response_data
-
-
+################################# VIEW USER PROFILE #########################
 @app.get('/api/admin/view-user/{user_id}')
 async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
     if current_user.role != "admin":
@@ -434,7 +447,7 @@ async def user_profile(user_id: int, current_user: TokenData = Depends(get_curre
     }
 
 
-# Endpoint to initiate the forgot password process
+################################# FORGOT PASSWORD #########################
 @app.post("/api/forgot-password")
 async def forgot_password(email: str, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.email == email).first()
@@ -491,7 +504,7 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
     #
     # # raise HTTPException(status_code=404, detail="Invalid token")
 
-
+################################# EDIT USER PROFILE #########################
 @app.put("/api/admin/edit-user")
 async def edit_user(
         user_id: int,
@@ -873,6 +886,59 @@ def get_all_companies(db: Session = Depends(get_db)):
 
     companies = db.query(Company).all()
     return companies
+
+
+@app.get("/api/admin/resume-history")
+def get_resume_history(db: Session = Depends(get_db)):
+    """
+    Retrieves a list of all resume history data.
+    Method: GET
+    URL: /resume/history
+    Response: Returns a JSON array containing resume history
+    data.Each object in the array represents a single resume
+    entry and includes information such as the user ID,
+    extracted data, and upload datetime.
+    """
+    return methods.get_all_resume_data(db)
+
+
+###################################### UPDATE USER PROFILE ######################################
+@app.put("/users/{user_id}/profile")
+async def update_user_profile(
+    user_id: int,
+    profile_picture: UploadFile = File(None),
+    username: Optional[str] = Form(None),
+    email: Optional[str] = Form(None),
+    hashed_password: Optional[str] = Form(None)
+):
+    # Open database session
+    db = SessionLocal()
+    try:
+        # Get the user from the database
+        user = db.query(User).filter(User.id == user_id).first()
+        if not user:
+            return {"message": "User not found"}
+
+        # Update profile picture if provided
+        if profile_picture:
+            profile_picture_path = methods.save_profile_picture(profile_picture)
+            user.profile_picture = profile_picture_path
+
+        # Update other user details if provided
+        if username:
+            user.username = username
+        if email:
+            user.email = email
+        if hashed_password:
+            user.hashed_password = hashed_password
+
+        # Commit changes to the database
+        db.commit()
+        return {"message": "User profile updated successfully"}
+
+    finally:
+        # Close database session
+        db.close()
 
 
 if __name__ == "__main__":

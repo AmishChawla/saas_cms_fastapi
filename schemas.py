@@ -25,7 +25,9 @@ class User(Base):
     role = Column(String, default="user")
     token = Column(String, default="")
     created_datetime = Column(DateTime(timezone=True), server_default=func.now())
+    profile_picture = Column(String, nullable=True)
     status = Column(String, default="active", index=True)
+
 
 
 
