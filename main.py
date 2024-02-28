@@ -271,6 +271,7 @@ async def user_profile(token: str = Depends(oauth2_scheme)):
         "username": user.username,
         "email": user.email,
         "role": user.role,
+        "profile_picture": user.profile_picture,
         "token": user.token,
         "resume_data": user.resume_data,
         "status": user.status,
