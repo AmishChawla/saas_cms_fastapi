@@ -35,6 +35,7 @@ app = FastAPI(
     openapi_url='/openapi.json',
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
+app.mount("/profile_pictures", StaticFiles(directory="profile_pictures"), name="profile_pictures")
 templates = Jinja2Templates(directory="templates")
 
 database = Database(DATABASE_URL)
