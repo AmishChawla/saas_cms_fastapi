@@ -932,7 +932,10 @@ async def update_profile(
         # Update profile picture if provided
         if profile_picture:
             profile_picture_path = methods.save_profile_picture(profile_picture)
-            user.profile_picture = profile_picture_path
+            query = update(User.__table__).where(User.id == user.id).values(
+                profile_picture=profile_picture_path
+            )
+            await database.execute(query)
 
         # Update other user details if provided
         if username is not None and email is not None:
