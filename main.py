@@ -292,10 +292,10 @@ async def get_all_users(
     db = SessionLocal()
     users_with_company = (
         db.query(User)
-        .outerjoin(Company, User.id == Company.user_id)
-        .options(joinedload(User.company))
-        .filter(User.status != "deleted")  # Exclude users with status "deleted"
-        .all()
+            .outerjoin(Company, User.id == Company.user_id)
+            .options(joinedload(User.company))
+            .filter(User.status != "deleted")  # Exclude users with status "deleted"
+            .all()
     )
     return users_with_company
 
@@ -313,14 +313,12 @@ async def get_all_deleted_users(
     db = SessionLocal()
     users_with_company = (
         db.query(User)
-        .outerjoin(Company, User.id == Company.user_id)
-        .options(joinedload(User.company))
-        .filter(User.status == "deleted")  # Exclude users with status "deleted"
-        .all()
+            .outerjoin(Company, User.id == Company.user_id)
+            .options(joinedload(User.company))
+            .filter(User.status == "deleted")  # Exclude users with status "deleted"
+            .all()
     )
     return users_with_company
-
-
 
 
 ################################# ADD USER #########################
@@ -355,6 +353,7 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme)):
                 "role": user.role,
             }
 
+
 ################################# DELETE USER #########################
 @app.delete("/api/admin/delete-user/{user_id}", response_model=dict)
 async def admin_delete_user(
@@ -371,7 +370,7 @@ async def admin_delete_user(
 
     # Check if the user to be deleted exists
     user_to_delete = db.query(User).filter(User.id == user_id).first()
-    if user_to_delete.status =="deleted":
+    if user_to_delete.status == "deleted":
         raise HTTPException(status_code=404, detail="User not found")
 
     # Delete the associated records in the ResumeData table
@@ -381,6 +380,7 @@ async def admin_delete_user(
     db.commit()
 
     return {"message": "User deleted successfully", "user_id": user_id}
+
 
 ################################# ADMIN LOGIN #########################
 @app.post("/api/admin/login", response_model=dict)
@@ -505,6 +505,7 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
     #
     # # raise HTTPException(status_code=404, detail="Invalid token")
 
+
 ################################# EDIT USER PROFILE #########################
 @app.put("/api/admin/edit-user")
 async def edit_user(
@@ -528,10 +529,11 @@ async def edit_user(
 
     # Update user services (assuming there's a Many-to-Many relationship between User and Services)
 
-
     return {
         "message": "User updated successfully"
     }
+
+
 @app.post("/api/register-admin")
 async def register_admin(admin: AdminInfo):
     async with database.transaction():
@@ -561,7 +563,6 @@ async def register_admin(admin: AdminInfo):
             "created_datetime": inserted_user["created_datetime"],
             "status": inserted_user["status"],
         }
-
 
 
 ########################################################## SERVICES ###################################################################################################
@@ -644,6 +645,7 @@ async def assign_services_to_user(user_id: int, service_ids: List[int], db: Sess
     db.commit()
 
     return {"message": "Services assigned to user successfully"}
+
 
 @app.delete("/api/users/{user_id}/remove_service/{service_id}")
 async def remove_service_from_user(user_id: int, service_id: int, db: Session = Depends(get_db)):
@@ -758,6 +760,7 @@ async def get_service(service_id: int, db: Session = Depends(get_db)):
 
     return service_info
 
+
 ########################################################################## COMPNIES ###########################################################################
 
 # Endpoint to create new company
@@ -790,6 +793,8 @@ def create_company(name: str, location: str, token: str = Depends(oauth2_scheme)
         "location": company.location,
         "user_id": company.user_id
     }
+
+
 # Endpoint to remove a company by its ID
 @app.delete("/api/companies/delete-company/{company_id}")
 def delete_company(company_id: int, db: Session = Depends(get_db)):
@@ -808,6 +813,7 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
     db.delete(company)
     db.commit()
     return {"message": "Company deleted successfully"}
+
 
 # Endpoint to update a company's information
 @app.put("/api/companies/update-company/{company_id}")
@@ -834,6 +840,7 @@ Returns: The updated company object.
     db.refresh(company)
     return company
 
+
 # Endpoint to get information about a specific company
 @app.get("/api/companies/{company_id}")
 def get_company(company_id: int, db: Session = Depends(get_db)):
@@ -850,6 +857,7 @@ Returns: The company object containing its name, location, and associated user I
     if not company:
         raise HTTPException(status_code=404, detail="Company not found")
     return company
+
 
 # Endpoint to get the company of a user
 @app.get("/api/user/company/")
@@ -873,6 +881,7 @@ def get_user_company(token: str = Depends(oauth2_scheme)):
 
     # Return the company details
     return company
+
 
 # Endpoint to get all companies
 @app.get("/api/companies/")
@@ -906,11 +915,11 @@ def get_resume_history(db: Session = Depends(get_db)):
 ###################################### UPDATE USER PROFILE ######################################
 @app.put("/api/update-profile")
 async def update_profile(
-    profile_picture: UploadFile = File(None),
-    username: Optional[str] = Form(None),
-    email: Optional[str] = Form(None),
-    password: Optional[str] = Form(None),
-    token: str = Depends(oauth2_scheme)
+        profile_picture: UploadFile = File(None),
+        username: Optional[str] = Form(None),
+        email: Optional[str] = Form(None),
+        password: Optional[str] = Form(None),
+        token: str = Depends(oauth2_scheme)
 ):
     # Open database session
     db = SessionLocal()
@@ -926,15 +935,14 @@ async def update_profile(
             user.profile_picture = profile_picture_path
 
         # Update other user details if provided
-        if username:
-            user.username = username
-        if email:
-            user.email = email
-        if password:
-            user.hashed_password = methods.get_password_hash(password)
+        if username is not None and email is not None:
+            query = update(User.__table__).where(User.id == user.id).values(
+                username=username, email=email,
+            )
+            await database.execute(query)
 
-        # Commit changes to the database
-        db.commit()
+            # Commit changes to the database
+            db.commit()
         return {"message": "User profile updated successfully"}
 
     finally:
