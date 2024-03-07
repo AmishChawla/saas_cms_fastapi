@@ -72,6 +72,7 @@ class Company(BaseModel):
     location: str
     user_id: int
 
+
 class UserCompanyResponse(BaseModel):
     id: int
     username: str
@@ -82,3 +83,22 @@ class UserCompanyResponse(BaseModel):
     company_id: int = None
     company_name: str = None
     company_location: str = None
+
+
+class SMTPSettingsBase(BaseModel):
+    smtp_server: str
+    smtp_port: int
+    smtp_username: str
+    smtp_password: str
+
+
+class SMTPSettingsCreate(SMTPSettingsBase):
+    email: str
+
+
+class SMTPSettings(SMTPSettingsBase):
+    id: int
+    user_id: int
+
+    class Config:
+        orm_mode = True

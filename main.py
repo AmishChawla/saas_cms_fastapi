@@ -19,6 +19,7 @@ from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload, selectinload
 import methods
 import models
+import schemas
 from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Service, UserServices, Company
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -427,6 +428,7 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends()):
             "role": user.role,
             "username": user.username,
             "email": user.email,
+            "profile_picture": user.profile_picture
         }
 
 
@@ -953,6 +955,35 @@ async def update_profile(
     finally:
         # Close database session
         db.close()
+
+
+############################################### EMAIL SETTINGS ##############################################
+
+@app.post("/api/admin/email_settings/", response_model=models.SMTPSettings)
+def create_admin_email_settings(smtp_settings: models.SMTPSettingsCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Check if the user is an admin
+    user = get_user_from_token(token)
+    if user.role != "admin":
+        raise HTTPException(status_code=403, detail="Only admin users can add email settings")
+
+    # Check if the admin user already has email settings
+    existing_smtp_settings = db.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.user_id == user.id).first()
+    if existing_smtp_settings:
+        raise HTTPException(status_code=400, detail="Admin email settings already exist")
+
+    # Create new email settings
+    db_smtp_settings = schemas.SMTPSettings(
+        user_id=user.id,
+        smtp_server=smtp_settings.smtp_server,
+        smtp_port=smtp_settings.smtp_port,
+        sender_email=smtp_settings.email,
+        smtp_username=smtp_settings.smtp_username,
+        smtp_password=smtp_settings.smtp_password
+    )
+    db.add(db_smtp_settings)
+    db.commit()
+    db.refresh(db_smtp_settings)
+    return db_smtp_settings
 
 
 if __name__ == "__main__":

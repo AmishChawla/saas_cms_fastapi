@@ -24,7 +24,7 @@ class SMTPSettings(Base):
     smtp_port = Column(Integer, nullable=True)
     smtp_username = Column(String, nullable=True)
     smtp_password = Column(String, nullable=True)
-    sender_email = Column(String, nullable=True)  # New field for sender's email
+    sender_email = Column(String, nullable=True)
 
     user = relationship("User", back_populates="smtp_settings")
 
