@@ -16,6 +16,19 @@ Base = declarative_base()
 engine = create_engine(DATABASE_URL)
 
 
+class SMTPSettings(Base):
+    __tablename__ = "smtp_settings"
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    smtp_server = Column(String, nullable=True)
+    smtp_port = Column(Integer, nullable=True)
+    smtp_username = Column(String, nullable=True)
+    smtp_password = Column(String, nullable=True)
+    sender_email = Column(String, nullable=True)  # New field for sender's email
+
+    user = relationship("User", back_populates="smtp_settings")
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)
@@ -36,6 +49,7 @@ class User(Base):
     pdf_files = relationship("PDFFiles", back_populates="user")
     services = relationship("Service", secondary="user_services")
     company = relationship("Company", back_populates="user")
+    smtp_settings = relationship("SMTPSettings", uselist=False, back_populates="user")
 
 
 class Service(Base):
@@ -100,6 +114,8 @@ class Company(Base):
     location = Column(String)
     user_id = Column(Integer, ForeignKey("users.id"))
     user = relationship("User", back_populates="company")
+
+
 
 
 
