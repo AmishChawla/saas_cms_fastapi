@@ -1,78 +1,41 @@
 <?xml version="1.0" ?>
 <data>
     <resume>
-        <name>Aryan Yashwant</name>
-        <email>aryanlakde@gmail.com</email>
-        <mobile_number>8451870221</mobile_number>
-        <skills>Analytics</skills>
-        <skills>Engineering</skills>
-        <skills>Css</skills>
-        <skills>Html5</skills>
-        <skills>Programming</skills>
-        <skills>Mathematics</skills>
-        <skills>Architecture</skills>
-        <skills>Video</skills>
-        <skills>Python</skills>
-        <skills>Strategy</skills>
-        <skills>Html</skills>
-        <skills>System</skills>
-        <skills>Ordering</skills>
-        <skills>Mobile</skills>
-        <skills>Analysis</skills>
-        <skills>Php</skills>
-        <skills>User experience</skills>
-        <skills>English</skills>
-        <skills>Tkinter</skills>
-        <skills>Java</skills>
-        <skills>Certification</skills>
-        <skills>Javascript</skills>
-        <skills>C</skills>
-        <skills>Mysql</skills>
-        <skills>Swift</skills>
-        <college_name>None</college_name>
-        <degree>None</degree>
-        <designation>None</designation>
-        <experience>None</experience>
-        <company_names>None</company_names>
-        <no_of_pages>2</no_of_pages>
-        <total_experience>0</total_experience>
-    </resume>
-    <resume>
         <name>Amish Chawla</name>
         <email>amishchawla8@gmail.com</email>
         <mobile_number>8130261379</mobile_number>
-        <skills>Analytics</skills>
-        <skills>Engineering</skills>
-        <skills>Cloud</skills>
-        <skills>Css</skills>
-        <skills>Access</skills>
-        <skills>C++</skills>
-        <skills>Machine learning</skills>
-        <skills>Algorithms</skills>
-        <skills>Ui</skills>
-        <skills>Ux</skills>
-        <skills>Programming</skills>
-        <skills>Mathematics</skills>
-        <skills>Coding</skills>
-        <skills>Flask</skills>
-        <skills>Python</skills>
-        <skills>Seaborn</skills>
-        <skills>Strategy</skills>
         <skills>Html</skills>
-        <skills>System</skills>
-        <skills>Mobile</skills>
-        <skills>Analysis</skills>
-        <skills>Php</skills>
-        <skills>Design</skills>
-        <skills>Website</skills>
-        <skills>Java</skills>
-        <skills>Certification</skills>
-        <skills>Javascript</skills>
-        <skills>C</skills>
+        <skills>Analytics</skills>
+        <skills>Access</skills>
         <skills>Api</skills>
-        <skills>Mysql</skills>
         <skills>Database</skills>
+        <skills>Seaborn</skills>
+        <skills>Ui</skills>
+        <skills>Java</skills>
+        <skills>Mobile</skills>
+        <skills>Algorithms</skills>
+        <skills>Strategy</skills>
+        <skills>C</skills>
+        <skills>C++</skills>
+        <skills>Mathematics</skills>
+        <skills>Flask</skills>
         <skills>Rest</skills>
+        <skills>Programming</skills>
+        <skills>Certification</skills>
+        <skills>Mysql</skills>
+        <skills>Coding</skills>
+        <skills>System</skills>
+        <skills>Machine learning</skills>
+        <skills>Website</skills>
+        <skills>Css</skills>
+        <skills>Cloud</skills>
+        <skills>Javascript</skills>
+        <skills>Engineering</skills>
+        <skills>Ux</skills>
+        <skills>Design</skills>
+        <skills>Analysis</skills>
+        <skills>Python</skills>
+        <skills>Php</skills>
         <college_name>None</college_name>
         <degree>B. E.</degree>
         <designation>None</designation>
@@ -111,56 +74,40 @@
         <total_experience>0.0</total_experience>
     </resume>
     <resume>
-        <name>Amish Chawla</name>
-        <email>amishchawla8@gmail.com</email>
-        <mobile_number>8130261379</mobile_number>
-        <skills>Engineering</skills>
-        <skills>Cloud</skills>
-        <skills>Css</skills>
-        <skills>Pandas</skills>
-        <skills>Matlab</skills>
-        <skills>Access</skills>
-        <skills>Algorithms</skills>
-        <skills>Ui</skills>
-        <skills>Ux</skills>
-        <skills>Programming</skills>
-        <skills>Coding</skills>
-        <skills>Flask</skills>
-        <skills>Python</skills>
-        <skills>Seaborn</skills>
-        <skills>Numpy</skills>
+        <name>Aryan Yashwant</name>
+        <email>aryanlakde@gmail.com</email>
+        <mobile_number>8451870221</mobile_number>
         <skills>Html</skills>
-        <skills>System</skills>
-        <skills>Technical</skills>
-        <skills>Github</skills>
-        <skills>Analysis</skills>
-        <skills>Design</skills>
-        <skills>Website</skills>
-        <skills>Javascript</skills>
-        <skills>Api</skills>
+        <skills>English</skills>
+        <skills>Analytics</skills>
+        <skills>Architecture</skills>
+        <skills>User experience</skills>
+        <skills>Video</skills>
+        <skills>Java</skills>
+        <skills>Mobile</skills>
+        <skills>C</skills>
+        <skills>Strategy</skills>
+        <skills>Tkinter</skills>
+        <skills>Mathematics</skills>
+        <skills>Programming</skills>
+        <skills>Html5</skills>
+        <skills>Certification</skills>
+        <skills>Ordering</skills>
         <skills>Mysql</skills>
-        <skills>Database</skills>
-        <skills>Rest</skills>
+        <skills>System</skills>
+        <skills>Php</skills>
+        <skills>Css</skills>
+        <skills>Javascript</skills>
+        <skills>Engineering</skills>
+        <skills>Analysis</skills>
+        <skills>Python</skills>
+        <skills>Swift</skills>
         <college_name>None</college_name>
-        <degree>Bachelor of Technology - Computer Engineering</degree>
+        <degree>None</degree>
         <designation>None</designation>
-        <experience>design, and database management</experience>
-        <experience>Clima – Weather App</experience>
-        <experience>•  Technologies used: Flutter, Dart, REST API integration, UI design</experience>
-        <experience>•  Developed a weather application using Flutter and Dart, integrating with the Open Weather API to</experience>
-        <experience>collect and display real-time weather data. The app provides information such as current temperature,</experience>
-        <experience>humidity, pressure, wind speed, and feels like temperature.</experience>
-        <experience>Achievements</experience>
-        <experience>Github</experience>
-        <experience>•  Solved 100+ Data Structures and Algorithms questions on various coding platforms like Leetcode and Pepcoding</experience>
-        <experience>•  Secured 10 Grade Points in Data Structures, Object Oriented Programming, Cloud Computing.</experience>
-        <experience>Position of Responsibilities/Mentorship</experience>
-        <experience>TopHealers</experience>
-        <experience>•  Volunteer at Top Healers – Helped in organizing and conduction of healing camps</experience>
-        <experience>•  Provided personalized academic support and tutoring services to students.</experience>
-        <experience>December 2022</experience>
+        <experience>None</experience>
         <company_names>None</company_names>
-        <no_of_pages>1</no_of_pages>
-        <total_experience>0.0</total_experience>
+        <no_of_pages>2</no_of_pages>
+        <total_experience>0</total_experience>
     </resume>
 </data>

@@ -158,6 +158,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             "role": user.role,
             "username": user.username,
             "email": user.email,
+            "profile_picture": user.profile_picture,
             "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
             "company": {"id": company["id"], "name": company["name"]} if company else None
         }

@@ -189,6 +189,37 @@ def send_password_reset_email(email: str, token):
         )
 
 
+def admin_send_email(reciever_email: str, message: str,  subject: str, smtp_server: str, login_email: str, login_password: str, smtp_port: int, token):
+    print(f"tryng to send email")
+
+    message = message
+    try:
+        # msg = MIMEMultipart()
+        msg = MIMEText(message, "plain")
+
+        msg['Subject'] = subject
+        msg['From'] = login_email
+        msg['To'] = reciever_email
+        port = smtp_port  # For STARTTLS
+
+        # Connect to the email server and start TLS
+        server = SMTP(smtp_server, port)
+        server.starttls()
+        # Login to the email server
+        server.login(login_email, login_password)
+        # msg.set_type("multipart/mixed")
+
+        # Send the email
+        server.sendmail(login_email, reciever_email, msg.as_string())
+        server.quit()
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not send password reset email",
+        )
+
+
 
 
 def extract_text_from_pdf(pdf_content):
