@@ -90,10 +90,7 @@ class SMTPSettingsBase(BaseModel):
     smtp_port: int
     smtp_username: str
     smtp_password: str
-
-
-class SMTPSettingsCreate(SMTPSettingsBase):
-    email: str
+    sender_email: str
 
 
 class SMTPSettings(SMTPSettingsBase):

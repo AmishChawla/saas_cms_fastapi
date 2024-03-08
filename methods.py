@@ -167,7 +167,7 @@ def send_password_reset_email(email: str, token):
         msg = MIMEText(message, "html")
 
         msg['Subject'] = "Password Reset"
-        msg['From'] = "noreply"
+        msg['From'] = "no reply"
         msg['To'] = email
         port = 587  # For STARTTLS
 
