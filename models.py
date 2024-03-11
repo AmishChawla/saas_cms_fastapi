@@ -70,6 +70,7 @@ class AdminInfo(BaseModel):
 class Company(BaseModel):
     name: str
     location: str
+    created_at: datetime
     user_id: int
 
 
@@ -84,7 +85,7 @@ class UserCompanyResponse(BaseModel):
     company_name: str = None
     company_location: str = None
 
-
+############################################################ EMAIL SETTINGS ###############################################################
 class SMTPSettingsBase(BaseModel):
     smtp_server: str
     smtp_port: int

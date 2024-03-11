@@ -786,7 +786,7 @@ def create_company(name: str, location: str, token: str = Depends(oauth2_scheme)
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     # Create the company
-    company = Company(name=name, location=location, user_id=current_user.id)
+    company = Company(name=name, location=location, user_id=current_user.id, created_at=datetime.datetime.utcnow())
     db.add(company)
     db.commit()
     db.refresh(company)
@@ -795,6 +795,7 @@ def create_company(name: str, location: str, token: str = Depends(oauth2_scheme)
         "id": company.id,
         "name": company.name,
         "location": company.location,
+        "created_at": company.created_at,
         "user_id": company.user_id
     }
 
