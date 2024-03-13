@@ -463,7 +463,7 @@ async def forgot_password(email: str, db: Session = Depends(get_db)):
         db.commit()
         print("user detected")
         # Send an email with the reset token
-        methods.send_password_reset_email(email, reset_token.token)
+        methods.send_password_reset_email(email, reset_token.token, db_session=db)
 
         return {
             "reset_token": reset_token.token,

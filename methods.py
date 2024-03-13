@@ -17,7 +17,7 @@ from starlette.responses import JSONResponse
 
 import models
 import schemas
-from constants import SECRET_KEY, ALGORITHM, EMAIL, EMAIL_PASSWORD
+from constants import SECRET_KEY, ALGORITHM, EMAIL, EMAIL_PASSWORD, FLASK_URL
 from sqlalchemy.orm import Session
 
 from models import TokenData, UserFiles
@@ -28,7 +28,6 @@ from sqlalchemy.orm import class_mapper
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
 
 
 def get_password_hash(password):
@@ -129,12 +128,14 @@ def row_to_dict(row):
 
 def get_user_files(user_id: int):
     db = SessionLocal()
-    user_csv_files = db.query(ResumeData.csv_file).filter(ResumeData.user_id == user_id).filter(ResumeData.csv_file.isnot(None)).all()
+    user_csv_files = db.query(ResumeData.csv_file).filter(ResumeData.user_id == user_id).filter(
+        ResumeData.csv_file.isnot(None)).all()
 
     # Extract CSV file paths from the result
     csv_files = [str(file) for file in user_csv_files]
 
     return csv_files
+
 
 def create_password_reset_token(email: str, expires_delta: timedelta):
     db = SessionLocal()
@@ -157,69 +158,59 @@ def create_password_reset_token(email: str, expires_delta: timedelta):
         return access_token
 
 
-def send_password_reset_email(email: str, token):
-    print(f"tryng to send email")
-
-    message = f"""<p>Click the following link to reset your password: <a href='https://resume-parser-flask.onrender.com/reset-password/{token}'>Reset Password</a></p> """
-
+def admin_send_email(recipient_emails: List[str], message: str, subject: str, db_session: Session):
+    print(f"trying to send email")
     try:
-        # msg = MIMEMultipart()
+        smtp_settings = db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.id == 2).first()
+
+        if not smtp_settings:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="SMTP settings not found for user",
+            )
+
+        # Prepare the email message
         msg = MIMEText(message, "html")
-
-        msg['Subject'] = "Password Reset"
-        msg['From'] = "no reply"
-        msg['To'] = email
-        port = 587  # For STARTTLS
-
-        # Connect to the email server and start TLS
-        server = SMTP("smtp.gmail.com", port)
-        server.starttls()
-        # Login to the email server
-        server.login("codester641@gmail.com","islv fkwf yqar yiad")
-        # msg.set_type("multipart/mixed")
-
-        # Send the email
-        server.sendmail("codester641@gmail.com", email, msg.as_string())
-        server.quit()
-    except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not send password reset email",
-        )
-
-
-def admin_send_email(reciever_email: str, message: str,  subject: str, smtp_server: str, login_email: str, login_password: str, smtp_port: int, token):
-    print(f"tryng to send email")
-
-    message = message
-    try:
-        # msg = MIMEMultipart()
-        msg = MIMEText(message, "plain")
-
         msg['Subject'] = subject
-        msg['From'] = login_email
-        msg['To'] = reciever_email
-        port = smtp_port  # For STARTTLS
+        msg['From'] = smtp_settings.sender_email
 
         # Connect to the email server and start TLS
-        server = SMTP(smtp_server, port)
+        server = SMTP(smtp_settings.smtp_server, smtp_settings.smtp_port)
         server.starttls()
-        # Login to the email server
-        server.login(login_email, login_password)
-        # msg.set_type("multipart/mixed")
 
-        # Send the email
-        server.sendmail(login_email, reciever_email, msg.as_string())
+        # Login to the email server
+        server.login(smtp_settings.sender_email, smtp_settings.smtp_password)
+
+        for recipient_email in recipient_emails:
+            msg['To'] = recipient_email
+
+            # Send the email
+            server.sendmail(smtp_settings.sender_email, recipient_email, msg.as_string())
+
         server.quit()
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not send email",
+        )
+
+
+def send_password_reset_email(email: str, reset_token, db_session: Session):
+    print(f"tryng to send password reset email")
+
+    message = f"""<p>Click the following link to reset your password: <a href='{FLASK_URL}/reset-password/{reset_token}'>Reset Password</a></p> """
+
+    try:
+        print('before admin send email')
+        admin_send_email(recipient_emails=[email], message=message, subject='Password Reset', db_session=db_session)
     except Exception as e:
         print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
             detail="Could not send password reset email",
         )
-
-
 
 
 def extract_text_from_pdf(pdf_content):
@@ -268,8 +259,3 @@ def save_profile_picture(file: UploadFile) -> str:
         buffer.write(file.file.read())
 
     return file_location
-
-
-
-
-
