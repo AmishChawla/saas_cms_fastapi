@@ -1,5 +1,5 @@
 from typing import Union, List
-from pydantic import BaseModel
+from pydantic import BaseModel, validator
 from datetime import datetime
 
 
@@ -100,3 +100,24 @@ class SMTPSettings(SMTPSettingsBase):
 
     class Config:
         orm_mode = True
+
+
+######################################################## Plans ########################################################################
+class PlanBase(BaseModel):
+    plan_type_name: str
+    time_period: str
+    fees: int
+    num_resume_parse: str  # Change to string type
+
+    @validator('num_resume_parse')
+    def validate_num_resume_parse(cls, value):
+        if value.lower() != 'unlimited':
+            try:
+                int(value)
+            except ValueError:
+                raise ValueError("num_resume_parse must be 'unlimited' or a valid integer")
+        return value
+
+
+class PlanResponse(PlanBase):
+    id: int

@@ -82,6 +82,14 @@ class ResumeData(Base):
 
     user = relationship("User", back_populates="resume_data")
 
+class Plan(Base):
+    __tablename__ = 'plans'
+
+    id = Column(Integer, primary_key=True)
+    plan_type_name = Column(String)
+    time_period = Column(String)   #months
+    fees = Column(Integer)
+    num_resume_parse = Column(String)
 
 class PasswordReset(Base):
     __tablename__ = "password_resets"

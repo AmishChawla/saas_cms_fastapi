@@ -1029,8 +1029,68 @@ def update_admin_email_settings(smtp_settings_update: models.SMTPSettingsBase, t
     return existing_smtp_settings
 
 
+###################################################### PLAN SETTINGS #############################################################
+
+@app.post("/api/plans/create-plan")
+def create_plan(plan: models.PlanBase):
+    db = SessionLocal()
+    db_plan = schemas.Plan(
+        plan_type_name=plan.plan_type_name,
+        time_period=plan.time_period,
+        fees=plan.fees,
+        num_resume_parse=plan.num_resume_parse,
+    )
+    db.add(db_plan)
+    db.commit()
+    db.refresh(db_plan)
+    db.close()
+    return db_plan
 
 
+@app.get("/api/plans/", response_model=List)
+def get_all_plans():
+    db = SessionLocal()
+    plans = db.query(schemas.Plan).all()
+    db.close()
+    return plans
+
+
+@app.get("/api/plans/{plan_id}")
+def get_plan(plan_id: int):
+    db = SessionLocal()
+    plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
+    db.close()
+    if plan is None:
+        raise HTTPException(status_code=404, detail="Plan not found")
+    return plan
+
+
+@app.put("/api/plans/update-plan/{plan_id}")
+def update_plan(plan_id: int, plan: models.PlanBase):
+    db = SessionLocal()
+    db_plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
+    if db_plan is None:
+        db.close()
+        raise HTTPException(status_code=404, detail="Plan not found")
+    for key, value in plan.dict().items():
+        setattr(db_plan, key, value)
+    db.commit()
+    db.refresh(db_plan)
+    db.close()
+    return db_plan
+
+
+@app.delete("/api/plans/delete-plan/{plan_id}")
+def delete_plan(plan_id: int):
+    db = SessionLocal()
+    db_plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
+    if db_plan is None:
+        db.close()
+        raise HTTPException(status_code=404, detail="Plan not found")
+    db.delete(db_plan)
+    db.commit()
+    db.close()
+    return {"message": "Plan deleted successfully"}
 
 
 
