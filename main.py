@@ -1049,8 +1049,10 @@ def create_plan(plan: models.PlanBase):
 
 @app.get("/api/plans/", response_model=List)
 def get_all_plans(db: Session = Depends(get_db)):
-    plans = db.query(schemas.Plan).all()
+    query = select(schemas.Plan)
+    plans = db.execute(query).scalars().all()
     return plans
+
 
 
 @app.get("/api/plans/{plan_id}")
