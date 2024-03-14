@@ -1048,10 +1048,8 @@ def create_plan(plan: models.PlanBase):
 
 
 @app.get("/api/plans/", response_model=List)
-def get_all_plans():
-    db = SessionLocal()
+def get_all_plans(db: Session = Depends(get_db)):
     plans = db.query(schemas.Plan).all()
-    db.close()
     return plans
 
 
