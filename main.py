@@ -1047,12 +1047,15 @@ def create_plan(plan: models.PlanBase):
     return db_plan
 
 
-@app.get("/api/plans/", response_model=List)
-def get_all_plans(db: Session = Depends(get_db)):
-    query = "SELECT * FROM plans"
-    plans = db.execute(query).fetchall()
-    return plans
-
+@app.get("/api/plans/")
+async def get_all_plans(db: Session = Depends(get_db)):
+    try:
+        plans = db.query(schemas.Plan).all()
+        return plans
+    except Exception as e:
+        # Custom error message including the reason for the error
+        error_message = f"Internal Server Error: {str(e)}"
+        raise HTTPException(status_code=500, detail=error_message)
 
 
 @app.get("/api/plans/{plan_id}")
