@@ -108,6 +108,7 @@ class PlanBase(BaseModel):
     time_period: str
     fees: int
     num_resume_parse: str  # Change to string type
+    plan_details: str
 
     @validator('num_resume_parse')
     def validate_num_resume_parse(cls, value):

@@ -1039,6 +1039,7 @@ def create_plan(plan: models.PlanBase):
         time_period=plan.time_period,
         fees=plan.fees,
         num_resume_parse=plan.num_resume_parse,
+        plan_details=plan.plan_details
     )
     db.add(db_plan)
     db.commit()
