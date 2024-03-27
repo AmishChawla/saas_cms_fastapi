@@ -1,5 +1,6 @@
 from dotenv import load_dotenv
 import os
+import stripe
 load_dotenv()
 
 DATABASE_URL = os.getenv("DATABASE_URL")
@@ -8,6 +9,7 @@ ALGORITHM = os.getenv("ALGORITHM")
 ACCESS_TOKEN_EXPIRE_MINUTES = int(os.getenv("ACCESS_TOKEN_EXPIRE_MINUTES"))
 EMAIL = os.getenv("EMAIL")
 EMAIL_PASSWORD = os.getenv("EMIL_PASSWORD")
+STRIPE_API_KEY = os.getenv("STRIPE_SECRET_KEY")
 
 # FLASK_URL = 'http://127.0.0.1:5000'
 

@@ -20,7 +20,7 @@ from sqlalchemy.orm import Session, joinedload, selectinload
 import methods
 import models
 import schemas
-from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, PDFFiles, Service, UserServices, Company
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, Service, UserServices, Company
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
@@ -29,6 +29,7 @@ from sqlalchemy import update, select, func
 from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
+import stripe
 
 # Initialize FastAPI and database
 app = FastAPI(
@@ -1034,12 +1035,16 @@ def update_admin_email_settings(smtp_settings_update: models.SMTPSettingsBase, t
 @app.post("/api/plans/create-plan")
 def create_plan(plan: models.PlanBase):
     db = SessionLocal()
+    product, price = methods.create_stripe_product_and_price(plan)
     db_plan = schemas.Plan(
         plan_type_name=plan.plan_type_name,
         time_period=plan.time_period,
         fees=plan.fees,
         num_resume_parse=plan.num_resume_parse,
-        plan_details=plan.plan_details
+        plan_details=plan.plan_details,
+        stripe_product_id=product.id,  # New field for Stripe Product ID
+        stripe_price_id=price.id,
+
     )
     db.add(db_plan)
     db.commit()
@@ -1061,12 +1066,17 @@ async def get_all_plans(db: Session = Depends(get_db)):
 
 @app.get("/api/plans/{plan_id}")
 def get_plan(plan_id: int):
-    db = SessionLocal()
-    plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
-    db.close()
-    if plan is None:
-        raise HTTPException(status_code=404, detail="Plan not found")
-    return plan
+    try:
+        db = SessionLocal()
+        plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
+        db.close()
+        if plan is None:
+            raise HTTPException(status_code=404, detail="Plan not found")
+        return plan
+    except Exception as e:
+        # Custom error message including the reason for the error
+        error_message = f"Internal Server Error: {str(e)}"
+        raise HTTPException(status_code=500, detail=error_message)
 
 
 @app.put("/api/plans/update-plan/{plan_id}")
@@ -1076,8 +1086,20 @@ def update_plan(plan_id: int, plan: models.PlanBase):
     if db_plan is None:
         db.close()
         raise HTTPException(status_code=404, detail="Plan not found")
-    for key, value in plan.dict().items():
-        setattr(db_plan, key, value)
+
+    methods.delete_stripe_product_and_price(stripe_product_id=db_plan.stripe_product_id, stripe_price_id=db_plan.stripe_price_id)
+    product, price = methods.create_stripe_product_and_price(plan)
+
+    db_plan.plan_type_name = plan.plan_type_name
+    db_plan.time_period = plan.time_period
+    db_plan.fees = plan.fees
+    db_plan.num_resume_parse = plan.num_resume_parse
+    db_plan.plan_details = plan.plan_details
+    db_plan.stripe_product_id = product.id
+    db_plan.stripe_price_id = price.id
+
+    db.commit()
+    db.refresh(db_plan)
     db.commit()
     db.refresh(db_plan)
     db.close()
@@ -1091,11 +1113,196 @@ def delete_plan(plan_id: int):
     if db_plan is None:
         db.close()
         raise HTTPException(status_code=404, detail="Plan not found")
+    methods.delete_stripe_product_and_price(stripe_price_id=db_plan.stripe_price_id, stripe_product_id=db_plan.strpe_product_id)
     db.delete(db_plan)
     db.commit()
     db.close()
     return {"message": "Plan deleted successfully"}
 
+################################################# SUBSCRIPTIONS #######################################################
+
+
+@app.post("/api/subscriptions/create-subscription")
+def create_subscription(plan_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    """
+    Create new Subscription
+    """
+    # Retrieve the user and plan from the database
+    user = get_user_from_token(token)
+    plan = db.query(schemas.Plan).filter(schemas.Plan.id == plan_id).first()
+    if not user or not plan:
+        raise HTTPException(status_code=404, detail="User or plan not found")
+
+    payment_method = stripe.PaymentMethod.create(
+        type='card',
+        card={
+            'token': 'tok_visa'
+        },
+    )
+
+    # Check if the user already has a Stripe customer ID
+    if not user.stripe_customer_id:
+        customer = stripe.Customer.create(email=user.email)
+        # Update the user's stripe_customer_id in the database
+        user.stripe_customer_id = customer.id
+        db.commit()
+
+    stripe_customer_id = user.stripe_customer_id
+
+    # Attach the created Payment Method to the customer
+    stripe.PaymentMethod.attach(
+        payment_method.id,
+        customer=stripe_customer_id,
+    )
+
+    # Set the attached Payment Method as the default payment method for the customer
+    stripe.Customer.modify(
+        stripe_customer_id,  # Replace with the actual customer ID
+        invoice_settings={
+            'default_payment_method': payment_method.id
+        }
+    )
+
+    # Create a subscription for the user using the Stripe Price ID
+    subscription = stripe.Subscription.create(
+        customer=stripe_customer_id,
+        items=[{'price': plan.stripe_price_id}],
+        expand=['latest_invoice.payment_intent'],
+    )
+
+    # Create a new subscription record in the database and associate it with the user
+    db_subscription = schemas.Subscription(
+        stripe_subscription_id=subscription.id,
+        stripe_customer_id=stripe_customer_id,
+        plan_id=plan_id,
+        user_id=user.id,
+        status=subscription.status,
+    )
+    db.add(db_subscription)
+    db.commit()
+    db.refresh(db_subscription)
+
+    return {"message": "Subscription successful", "subscription": subscription}
+
+
+@app.get("/api/subscriptions/{subscription_id}")
+async def get_subscription(subscription_id: str):
+    """
+    Get Subscription Details
+    """
+    # Retrieve the subscription from Stripe
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    # You can return the subscription details directly or map them to a schema
+    return subscription
+
+
+# Cancelling subscription
+@app.put("/api/subscriptions/{subscription_id}/cancel")
+async def cancel_subscription(subscription_id: str, db: Session = Depends(get_db)):
+    """
+    Cancel a Subscription
+    """
+    try:
+        canceled_subscription = stripe.Subscription.cancel(subscription_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    subscription = db.query(schemas.Subscription).filter(
+        schemas.Subscription.stripe_subscription_id == subscription_id).first()
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found in db")
+
+    # Update the subscription status
+    subscription.status = canceled_subscription.status
+    db.commit()
+    db.refresh(subscription)
+
+    return {"message": "Subscription will be cancelled at the end of the current billing period",
+            "subscription": canceled_subscription}
+
+
+@app.put("/subscriptions/{subscription_id}/change-plan")
+async def change_subscription_plan(subscription_id: str, plan_id: str, db: Session = Depends(get_db)):
+    """
+    Modify subscription
+
+    :param subscription_id: stripe suscription_id
+    :param plan_id: plan id to access plan in database
+    :param db: Session
+    :return: updated_subscription object
+    """
+    # Retrieve the current subscription
+    try:
+        subscription = stripe.Subscription.retrieve(subscription_id)
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail=str(e))
+
+    # Retrieve the plan details from the database
+    plan = db.query(models.Plan).filter(models.Plan.id == plan_id).first()
+    if not plan:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Plan not found")
+
+    # Update the subscription with the new plan
+    try:
+        updated_subscription = stripe.Subscription.modify(
+            subscription_id,
+            items=[{'id': subscription['items']['data'][0].id, 'price': plan.stripe_price_id}]
+        )
+    except stripe.error.StripeError as e:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail=str(e))
+
+    # Update the subscription status in the database
+    try:
+        updated_subscription_db = methods.update_subscription_status_in_db(db, subscription_id, updated_subscription.status, plan.id)
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+    return {"message": "Subscription plan changed successfully", "subscription": updated_subscription_db}
+
+
+@app.post("/api/subscriptions/resume-subscription/{subscription_id}")
+def resume_subscription(subscription_id: str, db: Session = Depends(get_db)):
+    """
+    Resume a paused or canceled subscription
+    """
+    try:
+        # Retrieve the subscription from Stripe
+        subscription = stripe.Subscription.retrieve(subscription_id)
+        print(subscription.id)
+        print(subscription.status)
+
+        # Check if the subscription is paused or canceled
+        if subscription.status in ['paused', 'canceled']:
+            stripe.Subscription.resume(
+                subscription.id,
+                billing_cycle_anchor="now",
+            )
+            print('Subscription resumed')
+        else:
+            print('Subscription is not paused or canceled')
+
+        # Update the subscription status in the database
+        db_subscription = db.query(schemas.Subscription).filter(
+            schemas.Subscription.stripe_subscription_id == subscription_id).first()
+        if db_subscription:
+            db_subscription.status = subscription.status
+            db.commit()
+            print('Database updated')
+        else:
+            print('Subscription not found in database')
+    except stripe.error.StripeError as e:
+        # Log the error for debugging
+        print(f"Stripe error: {e}")
+        raise HTTPException(status_code=404, detail=str(e))
+    except Exception as e:
+        # Catch any other exceptions and log them
+        print(f"General error: {e}")
+        raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
 
 if __name__ == "__main__":

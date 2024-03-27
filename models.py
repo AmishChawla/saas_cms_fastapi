@@ -19,6 +19,7 @@ class UserCreate(BaseModel):
     password: str
     role: str = "user"
 
+
 class UserResponse(BaseModel):
     id: int
     username: str
@@ -85,6 +86,7 @@ class UserCompanyResponse(BaseModel):
     company_name: str = None
     company_location: str = None
 
+
 ############################################################ EMAIL SETTINGS ###############################################################
 class SMTPSettingsBase(BaseModel):
     smtp_server: str
@@ -122,3 +124,5 @@ class PlanBase(BaseModel):
 
 class PlanResponse(PlanBase):
     id: int
+    stripe_product_id: str  # New field for Stripe Product ID
+    stripe_price_id: str

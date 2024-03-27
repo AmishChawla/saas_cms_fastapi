@@ -15,6 +15,7 @@ from passlib.context import CryptContext
 from sqlalchemy import select
 from starlette.responses import JSONResponse
 
+import constants
 import models
 import schemas
 from constants import SECRET_KEY, ALGORITHM, EMAIL, EMAIL_PASSWORD, FLASK_URL
@@ -23,12 +24,13 @@ from sqlalchemy.orm import Session
 from models import TokenData, UserFiles
 from resume_parser import extract_data
 
-from schemas import User, get_db, SessionLocal, ResumeData, PasswordReset, PDFFiles
+from schemas import User, get_db, SessionLocal, ResumeData, PasswordReset
 from sqlalchemy.orm import class_mapper
+import stripe
 
 pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
-
+stripe.api_key = constants.STRIPE_API_KEY
 
 def get_password_hash(password):
     return pwd_context.hash(password)
@@ -259,3 +261,44 @@ def save_profile_picture(file: UploadFile) -> str:
         buffer.write(file.file.read())
 
     return file_location
+
+
+##################################################### STRIPE ##################################################################
+
+def create_stripe_product_and_price(plan):
+    product = stripe.Product.create(
+        name=plan.plan_type_name,
+        description=plan.plan_details,
+    )
+    price = stripe.Price.create(
+        product=product.id,
+        unit_amount=plan.fees,
+        currency='usd',
+        recurring={'interval': "month",
+                   "interval_count": int(plan.time_period)},
+    )
+    return product, price
+
+
+def delete_stripe_product_and_price(stripe_price_id, stripe_product_id):
+    stripe.Price.delete(stripe_price_id)
+    # Delete the Stripe product
+    stripe.Product.delete(stripe_product_id)
+
+
+def update_subscription_status_in_db(db: Session, subscription_id: str, new_status: str, plan_id: int):
+
+    # Retrieve the subscription from the database
+    subscription = db.query(schemas.Subscription).filter(
+        schemas.Subscription.stripe_subscription_id == subscription_id).first()
+
+    if not subscription:
+        raise HTTPException(status_code=404, detail="Subscription not found")
+
+    # Update the subscription status
+    subscription.plan_id = plan_id
+    subscription.status = new_status
+    db.commit()
+    db.refresh(subscription)
+
+    return subscription

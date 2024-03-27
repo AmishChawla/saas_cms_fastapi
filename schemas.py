@@ -1,4 +1,4 @@
-
+import datetime
 
 from sqlalchemy import Column, String, Integer, ForeignKey, LargeBinary, JSON, func, DateTime, ARRAY, Text, Boolean
 from sqlalchemy.orm import relationship
@@ -37,6 +37,7 @@ class User(Base):
     hashed_password = Column(String)
     role = Column(String, default="user")
     token = Column(String, default="")
+    stripe_customer_id = Column(String, unique=True)
     created_datetime = Column(DateTime(timezone=True), server_default=func.now())
     profile_picture = Column(String, nullable=True)
     status = Column(String, default="active", index=True)
@@ -44,12 +45,13 @@ class User(Base):
 
 
 
+
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
-    pdf_files = relationship("PDFFiles", back_populates="user")
     services = relationship("Service", secondary="user_services")
     company = relationship("Company", back_populates="user")
     smtp_settings = relationship("SMTPSettings", uselist=False, back_populates="user")
+    subscriptions = relationship("Subscription", back_populates="user")
 
 
 class Service(Base):
@@ -91,6 +93,25 @@ class Plan(Base):
     fees = Column(Integer)
     num_resume_parse = Column(String)
     plan_details = Column(String)
+    stripe_product_id = Column(String) # New field for Stripe Product ID
+    stripe_price_id = Column(String)
+
+    subscriptions = relationship("Subscription", back_populates="plan")
+
+class Subscription(Base):
+    __tablename__ = 'subscriptions'
+
+    id = Column(Integer, primary_key=True)
+    stripe_subscription_id = Column(String, unique=True)
+    stripe_customer_id = Column(String, unique=True)
+    plan_id = Column(Integer, ForeignKey('plans.id'))
+    user_id = Column(Integer, ForeignKey('users.id'))
+    status = Column(String) # e.g., 'active', 'past_due', 'canceled', etc.
+    created_at = Column(DateTime, default=datetime.datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.datetime.utcnow, onupdate=datetime.datetime.utcnow)
+
+    user = relationship("User", back_populates="subscriptions")
+    plan = relationship('Plan', back_populates='subscriptions')
 
 
 class PasswordReset(Base):
@@ -102,18 +123,6 @@ class PasswordReset(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="password_resets")
-
-
-class PDFFiles(Base):
-    __tablename__ = "pdf_files"
-
-    id = Column(Integer, primary_key=True, index=True)
-    file_name = Column(String, nullable=False)
-    file_data = Column(LargeBinary, nullable=False)
-    upload_datetime = Column(DateTime(timezone=True), server_default=func.now(), nullable=False)
-    user_id = Column(Integer, ForeignKey('users.id'))
-
-    user = relationship("User", back_populates="pdf_files")
 
 
 class Company(Base):
