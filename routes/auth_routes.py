@@ -1,0 +1,329 @@
+
+import datetime
+from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query, Form, APIRouter
+from fastapi.security import OAuth2PasswordRequestForm
+
+from datetime import timedelta
+from sqlalchemy.orm import Session, joinedload, selectinload
+import methods
+from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, Service, UserServices, Company
+from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
+from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
+from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
+    get_user_from_token, update_user_password
+
+
+auth_router = APIRouter()
+
+
+@auth_router.post("/api/register")
+async def register_user(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if the email is already registered
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create a new user
+    hashed_password = get_password_hash(user.password)
+    new_user = User(username=user.username, email=user.email, hashed_password=hashed_password,
+                    role=user.role, status="active", created_datetime=datetime.datetime.utcnow())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "id": new_user.id,
+        "username": new_user.username,
+        "email": new_user.email,
+        "role": new_user.role,
+        "created_datetime": new_user.created_datetime,
+        "status": new_user.status,
+    }
+
+
+# @auth_router.post("/api/login", response_model=dict)
+# async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
+#     # Authenticate user using email
+#     query = User.__table__.select().where(User.email == form_data.username)
+#     user = await database.fetch_one(query)
+#
+#     if user is None or not verify_password(form_data.password, user['hashed_password']):
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid credentials",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     elif user["role"] != "user":
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Insufficient privileges",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     elif user["status"] != "active":
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="User is blocked",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     elif user["status"] == "deleted":
+#         raise HTTPException(
+#             status_code=status.HTTP_401_UNAUTHORIZED,
+#             detail="Invalid credentials",
+#             headers={"WWW-Authenticate": "Bearer"},
+#         )
+#     else:
+#         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+#         access_token = create_access_token(
+#             data={"sub": user.username, "role": user.role},
+#             expires_delta=access_token_expires
+#         )
+#
+#         # Fetch user services
+#         user_services_query = """
+#             SELECT s.*
+#             FROM services s
+#             INNER JOIN user_services us ON s.service_id = us.service_id
+#             WHERE us.user_id = :user_id
+#         """
+#         user_services = await database.fetch_all(user_services_query, values={"user_id": user.id})
+#
+#         # Fetch company details
+#         company_query = """
+#             SELECT c.*
+#             FROM companies c
+#             WHERE c.user_id = :user_id
+#         """
+#         company = await database.fetch_one(company_query, values={"user_id": user.id})
+#
+#         # Update user token
+#         query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
+#         await database.execute(query)
+#
+#         return {
+#             "access_token": access_token,
+#             "token_type": "bearer",
+#             "role": user.role,
+#             "username": user.username,
+#             "email": user.email,
+#             "profile_picture": user.profile_picture,
+#             "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
+#             "company": {"id": company["id"], "name": company["name"]} if company else None
+#         }
+
+
+@auth_router.post("/api/login", response_model=dict)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Authenticate user using email
+    user = db.query(User).filter(User.email == form_data.username).first()
+
+    if user is None or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.role != "user":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.status == "deleted":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role},
+            expires_delta=access_token_expires
+        )
+
+        # Fetch user services
+        user_services = db.query(Service).join(UserServices).filter(UserServices.user_id == user.id).all()
+
+        # Fetch company details
+        company = db.query(Company).filter(Company.user_id == user.id).first()
+
+        # Update user token
+        user.token = access_token
+        db.commit()
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.username,
+            "email": user.email,
+            "profile_picture": user.profile_picture,
+            "services": [{"id": service.service_id, "name": service.name} for service in user_services],
+            "company": {"id": company.id, "name": company.name} if company else None
+        }
+
+
+@auth_router.put("/api/update-password")
+async def update_password(
+        current_password: str,
+        new_password: str,
+        confirm_new_password: str,
+        token: str = Depends(oauth2_scheme)
+):
+    # Verify token and get user from the database
+    user = get_user_from_token(token)
+
+    # Check if the current password provided matches the user's actual password
+    if not verify_password(current_password, user.hashed_password):
+        raise HTTPException(status_code=400, detail="Current password is incorrect")
+
+    # Check if the new password and confirmation match
+    if new_password != confirm_new_password:
+        raise HTTPException(status_code=400, detail="New password and confirmation do not match")
+
+    # Update the user's password in the database
+    update_user_password(user.id, new_password)
+
+    return {"message": "Password updated successfully"}
+
+
+################################# ADMIN LOGIN #########################
+@auth_router.post("/api/admin/login", response_model=dict)
+async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Authenticate user using email
+    user = db.query(User).filter(User.email == form_data.username).first()
+
+    if user is None or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    elif user.role != "admin":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role},
+            expires_delta=access_token_expires
+        )
+
+        user.token = access_token
+        db.commit()
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.username,
+            "email": user.email,
+            "profile_picture": user.profile_picture
+        }
+################################# FORGOT PASSWORD #########################
+@auth_router.post("/api/forgot-password")
+async def forgot_password(email: str, db: Session = Depends(get_db)):
+    user = db.query(User).filter(User.email == email).first()
+    if user:
+        # Generate a password reset token and store it in the database
+        reset_token = PasswordReset(user_id=user.id)
+        db.add(reset_token)
+        db.commit()
+        print("user detected")
+        # Send an email with the reset token
+        methods.send_password_reset_email(email, reset_token.token, db_session=db)
+
+        return {
+            "reset_token": reset_token.token,
+            "message": "Password reset instructions sent to your email"
+        }
+
+    raise HTTPException(status_code=404, detail="User not found")
+
+
+# Endpoint to reset the password based on the provided token
+@auth_router.post("/api/reset-password")
+async def reset_password(token, new_password, db: Session = Depends(get_db)):
+    reset_token = db.query(PasswordReset).filter(PasswordReset.token == token).first()
+    if reset_token:
+        # Reset the user's password
+        user = reset_token.user
+        user.hashed_password = get_password_hash(new_password)
+
+        # Remove the reset token from the database
+        db.delete(reset_token)
+        db.commit()
+        return {
+            "message": "Password reset successfully"
+        }
+
+# @auth_router.post("/api/register-admin")
+# async def register_admin(admin: AdminInfo):
+#     async with database.transaction():
+#         # Check if the email is already registered
+#         query = User.__table__.select().where(User.email == admin.email)
+#         existing_user = await database.fetch_one(query)
+#         if existing_user:
+#             raise HTTPException(status_code=400, detail="Email already registered")
+#
+#         # Create a new user
+#         db_user = await database.execute(User.__table__.insert().values(
+#             username=admin.username,
+#             email=admin.email,
+#             hashed_password=get_password_hash(admin.password),
+#             role=admin.role,
+#             status="active",
+#             created_datetime=datetime.datetime.utcnow()
+#         ))
+#
+#         inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
+#
+#         return {
+#             "id": inserted_user["id"],
+#             "username": inserted_user["username"],
+#             "email": inserted_user["email"],
+#             "role": inserted_user["role"],
+#             "created_datetime": inserted_user["created_datetime"],
+#             "status": inserted_user["status"],
+#         }
+
+
+@auth_router.post("/api/register-admin")
+async def register_admin(admin: AdminInfo, db: Session = Depends(get_db)):
+    # Check if the email is already registered
+    existing_user = db.query(User).filter(User.email == admin.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create a new user
+    hashed_password = get_password_hash(admin.password)
+    new_user = User(username=admin.username, email=admin.email, hashed_password=hashed_password,
+                    role=admin.role, status="active", created_datetime=datetime.datetime.utcnow())
+    db.add(new_user)
+    db.commit()
+    db.refresh(new_user)
+
+    return {
+        "id": new_user.id,
+        "username": new_user.username,
+        "email": new_user.email,
+        "role": new_user.role,
+        "created_datetime": new_user.created_datetime,
+        "status": new_user.status,
+    }

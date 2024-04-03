@@ -42,10 +42,6 @@ class User(Base):
     profile_picture = Column(String, nullable=True)
     status = Column(String, default="active", index=True)
 
-
-
-
-
     resume_data = relationship("ResumeData", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     services = relationship("Service", secondary="user_services")

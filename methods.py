@@ -32,6 +32,7 @@ pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="token")
 stripe.api_key = constants.STRIPE_API_KEY
 
+
 def get_password_hash(password):
     return pwd_context.hash(password)
 
@@ -215,17 +216,6 @@ def send_password_reset_email(email: str, reset_token, db_session: Session):
         )
 
 
-def extract_text_from_pdf(pdf_content):
-    pdf_document = fitz.open(stream=pdf_content, filetype="pdf")
-    text_content = ""
-
-    for page_number in range(pdf_document.page_count):
-        page = pdf_document[page_number]
-        text_content += page.get_text()
-
-    return text_content
-
-
 def is_service_allowed(user_id: int, service_name: str):
     """
     Check if a service is allowed to a user.
@@ -272,7 +262,7 @@ def create_stripe_product_and_price(plan):
     )
     price = stripe.Price.create(
         product=product.id,
-        unit_amount=plan.fees,
+        unit_amount=plan.fees * 100,  # for USD
         currency='usd',
         recurring={'interval': "month",
                    "interval_count": int(plan.time_period)},
@@ -287,7 +277,6 @@ def delete_stripe_product_and_price(stripe_price_id, stripe_product_id):
 
 
 def update_subscription_status_in_db(db: Session, subscription_id: str, new_status: str, plan_id: int):
-
     # Retrieve the subscription from the database
     subscription = db.query(schemas.Subscription).filter(
         schemas.Subscription.stripe_subscription_id == subscription_id).first()
@@ -302,3 +291,40 @@ def update_subscription_status_in_db(db: Session, subscription_id: str, new_stat
     db.refresh(subscription)
 
     return subscription
+
+
+################### CURRENT PLAN DETAILS ##################################
+def get_current_plan_details(stripe_subscription_id: str, db: Session):
+    """
+    Retrieve information about the current plan and subscription details
+    based on the provided Stripe subscription ID.
+
+    Args:
+        db (Session): Database session.
+        stripe_subscription_id (str): Stripe subscription ID.
+
+    Returns:
+        dict: Dictionary containing plan and subscription details.
+    """
+    stripe_subscription = stripe.Subscription.retrieve(stripe_subscription_id)
+    subscription = db.query(schemas.Subscription).filter(
+        schemas.Subscription.stripe_subscription_id == stripe_subscription_id).first()
+
+    next_billing_date = datetime.fromtimestamp(stripe_subscription["current_period_end"]).strftime('%d %B %Y')
+
+    if subscription and stripe_subscription:
+        plan = subscription.plan
+
+        subscription_details = {
+            "stripe_subscription_id": stripe_subscription_id,
+            "plan_name": plan.plan_type_name,
+            "status": stripe_subscription["status"],
+            "next_billing_date": next_billing_date,
+            "cancel_at_period_end": stripe_subscription["cancel_at_period_end"],
+            # Assuming next billing date is calculated as the last billing date plus the subscription period
+            "created_at": subscription.created_at,
+            "updated_at": subscription.updated_at
+        }
+        return subscription_details
+    else:
+        return None

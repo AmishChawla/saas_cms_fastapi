@@ -4,38 +4,101 @@
         <name>Amish Chawla</name>
         <email>amishchawla8@gmail.com</email>
         <mobile_number>8130261379</mobile_number>
-        <skills>Html</skills>
-        <skills>Analytics</skills>
-        <skills>Access</skills>
-        <skills>Api</skills>
-        <skills>Database</skills>
-        <skills>Seaborn</skills>
-        <skills>Ui</skills>
-        <skills>Java</skills>
-        <skills>Mobile</skills>
-        <skills>Algorithms</skills>
-        <skills>Strategy</skills>
-        <skills>C</skills>
-        <skills>C++</skills>
         <skills>Mathematics</skills>
-        <skills>Flask</skills>
+        <skills>C</skills>
         <skills>Rest</skills>
         <skills>Programming</skills>
-        <skills>Certification</skills>
+        <skills>Analytics</skills>
+        <skills>Access</skills>
         <skills>Mysql</skills>
-        <skills>Coding</skills>
-        <skills>System</skills>
-        <skills>Machine learning</skills>
-        <skills>Website</skills>
-        <skills>Css</skills>
-        <skills>Cloud</skills>
-        <skills>Javascript</skills>
-        <skills>Engineering</skills>
+        <skills>Html</skills>
+        <skills>C++</skills>
+        <skills>Flask</skills>
         <skills>Ux</skills>
-        <skills>Design</skills>
-        <skills>Analysis</skills>
-        <skills>Python</skills>
         <skills>Php</skills>
+        <skills>Python</skills>
+        <skills>Design</skills>
+        <skills>Engineering</skills>
+        <skills>Certification</skills>
+        <skills>System</skills>
+        <skills>Website</skills>
+        <skills>Ui</skills>
+        <skills>Mobile</skills>
+        <skills>Api</skills>
+        <skills>Javascript</skills>
+        <skills>Java</skills>
+        <skills>Css</skills>
+        <skills>Analysis</skills>
+        <skills>Database</skills>
+        <skills>Strategy</skills>
+        <skills>Coding</skills>
+        <skills>Algorithms</skills>
+        <skills>Cloud</skills>
+        <college_name>None</college_name>
+        <degree>B. E.</degree>
+        <designation>None</designation>
+        <experience>•  Weather Application :(Technologies used: Flutter, Dart, REST API integration, UI design , Aug 2021):</experience>
+        <experience>Developed a weather application using Flutter and Dart, integrating with the Open Weather API to collect and</experience>
+        <experience>display real-time weather data. The app provides information such as current temperature, humidity, pressure, wind</experience>
+        <experience>speed, and feels like temperature. Implemented a user-friendly interface to present the weather data in an easily</experience>
+        <experience>readable format.</experience>
+        <experience>INTERNSHIPS:</experience>
+        <experience>•  Aynsoft (June 2022): Developed a Flutter application that empowered small business owners to sell their</experience>
+        <experience>products online. Implemented essential features, including product listing. Collaborated with a team to integrate</experience>
+        <experience>banner ads using Google AdMob for monetization. Implemented user authentication functionality through REST</experience>
+        <experience>API, enabling login/signup for users. Demonstrated strong problem-solving skills, teamwork, and adaptability in an</experience>
+        <experience>internship setting.</experience>
+        <experience>POSITION OF RESPONSIBILITY</experience>
+        <experience>•  Volunteer at Top Healers – Helped in organising and conduction of healing camps.(December 2023)</experience>
+        <experience>EXTRA CURRICULAR ACHIEVEMENTS</experience>
+        <experience>•  Provided personalized academic support and tutoring services to 8 grade students.</experience>
+        <experience>•  Participated in several Table tennis competitions during school.</experience>
+        <experience>ADDITIONAL INFORMATION</experience>
+        <experience>Preferred Programming Language: JAVA</experience>
+        <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
+        <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
+        <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
+        <company_names>III</company_names>
+        <company_names>F. E.</company_names>
+        <no_of_pages>2</no_of_pages>
+        <total_experience>0.0</total_experience>
+    </resume>
+    <resume>
+        <name>Amish Chawla</name>
+        <email>amishchawla8@gmail.com</email>
+        <mobile_number>8130261379</mobile_number>
+        <skills>Mathematics</skills>
+        <skills>C</skills>
+        <skills>Rest</skills>
+        <skills>Programming</skills>
+        <skills>Analytics</skills>
+        <skills>Access</skills>
+        <skills>Mysql</skills>
+        <skills>Html</skills>
+        <skills>C++</skills>
+        <skills>Seaborn</skills>
+        <skills>Flask</skills>
+        <skills>Ux</skills>
+        <skills>Php</skills>
+        <skills>Python</skills>
+        <skills>Design</skills>
+        <skills>Engineering</skills>
+        <skills>Certification</skills>
+        <skills>System</skills>
+        <skills>Website</skills>
+        <skills>Ui</skills>
+        <skills>Mobile</skills>
+        <skills>Api</skills>
+        <skills>Javascript</skills>
+        <skills>Java</skills>
+        <skills>Css</skills>
+        <skills>Machine learning</skills>
+        <skills>Analysis</skills>
+        <skills>Database</skills>
+        <skills>Strategy</skills>
+        <skills>Coding</skills>
+        <skills>Algorithms</skills>
+        <skills>Cloud</skills>
         <college_name>None</college_name>
         <degree>B. E.</degree>
         <designation>None</designation>
@@ -68,46 +131,46 @@
         <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
         <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
         <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
-        <company_names>F. E.</company_names>
         <company_names>III</company_names>
+        <company_names>F. E.</company_names>
         <no_of_pages>2</no_of_pages>
         <total_experience>0.0</total_experience>
     </resume>
     <resume>
-        <name>Aryan Yashwant</name>
+        <name>Name:</name>
         <email>aryanlakde@gmail.com</email>
         <mobile_number>8451870221</mobile_number>
-        <skills>Html</skills>
-        <skills>English</skills>
-        <skills>Analytics</skills>
-        <skills>Architecture</skills>
-        <skills>User experience</skills>
-        <skills>Video</skills>
-        <skills>Java</skills>
-        <skills>Mobile</skills>
-        <skills>C</skills>
-        <skills>Strategy</skills>
-        <skills>Tkinter</skills>
         <skills>Mathematics</skills>
+        <skills>C</skills>
         <skills>Programming</skills>
-        <skills>Html5</skills>
-        <skills>Certification</skills>
-        <skills>Ordering</skills>
+        <skills>Analytics</skills>
+        <skills>Tkinter</skills>
         <skills>Mysql</skills>
-        <skills>System</skills>
-        <skills>Php</skills>
-        <skills>Css</skills>
-        <skills>Javascript</skills>
-        <skills>Engineering</skills>
-        <skills>Analysis</skills>
-        <skills>Python</skills>
         <skills>Swift</skills>
+        <skills>Html</skills>
+        <skills>Html5</skills>
+        <skills>Php</skills>
+        <skills>Python</skills>
+        <skills>Engineering</skills>
+        <skills>Certification</skills>
+        <skills>System</skills>
+        <skills>Mobile</skills>
+        <skills>User experience</skills>
+        <skills>Ordering</skills>
+        <skills>Javascript</skills>
+        <skills>Java</skills>
+        <skills>English</skills>
+        <skills>Css</skills>
+        <skills>Analysis</skills>
+        <skills>Strategy</skills>
+        <skills>Video</skills>
+        <skills>Architecture</skills>
         <college_name>None</college_name>
         <degree>None</degree>
         <designation>None</designation>
         <experience>None</experience>
         <company_names>None</company_names>
-        <no_of_pages>2</no_of_pages>
+        <no_of_pages>None</no_of_pages>
         <total_experience>0</total_experience>
     </resume>
 </data>
