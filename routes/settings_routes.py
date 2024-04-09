@@ -279,6 +279,26 @@ async def get_subscription(subscription_id: str):
     return subscription
 
 
+@subscription_router.get("/api/subscriptions/all-subscriptions")
+def purchase_history(
+        db: Session = Depends(get_db),
+        token: str = Depends(oauth2_scheme)
+):
+    """
+    Get user purchase history
+    """
+
+    current_user = get_user_from_token(token)
+    if current_user.role != "admin":
+        raise HTTPException(status_code=403, detail="Permission denied")
+
+    subscriptions = db.query(schemas.Subscription).\
+        join(schemas.User).join(schemas.Plan).\
+        options(joinedload(schemas.Subscription.user)).\
+        options(joinedload(schemas.Subscription.plan)).all()
+    return subscriptions
+
+
 # Cancelling subscription
 @subscription_router.post("/api/subscriptions/{subscription_id}/cancel")
 async def cancel_subscription(subscription_id: str, db: Session = Depends(get_db)):
