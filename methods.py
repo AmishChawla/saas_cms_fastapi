@@ -1,7 +1,6 @@
 import os
 import tempfile
 import uuid
-from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from smtplib import SMTP_SSL, SMTP
 from fastapi import HTTPException, Depends, status, UploadFile, File
@@ -11,9 +10,8 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta
 from typing import Union, List
 from passlib.context import CryptContext
+from sqlalchemy.orm import joinedload
 
-from sqlalchemy import select
-from starlette.responses import JSONResponse
 
 import constants
 import models
@@ -328,3 +326,14 @@ def get_current_plan_details(stripe_subscription_id: str, db: Session):
         return subscription_details
     else:
         return None
+
+
+################################## ORDER HISTORY #############################
+
+def order_history(user_id: int, db: Session):
+    """
+    Get purchase history of the user
+    """
+    subscriptions = db.query(schemas.Subscription).filter(schemas.Subscription.user_id == user_id). \
+        options(joinedload(schemas.Subscription.plan)).all()
+    return subscriptions

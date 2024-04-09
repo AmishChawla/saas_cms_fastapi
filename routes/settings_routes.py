@@ -1,3 +1,5 @@
+from typing import List
+
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Form, APIRouter
 from sqlalchemy.orm import Session, joinedload
 import methods
@@ -262,7 +264,7 @@ def create_subscription(
         raise HTTPException(status_code=500, detail=f"Stripe Error: {e}")
 
 
-@subscription_router.get("/api/subscriptions/{subscription_id}")
+@subscription_router.get("/api/subscriptions/get-subscription/{subscription_id}")
 async def get_subscription(subscription_id: str):
     """
     Get Subscription Details
@@ -296,7 +298,7 @@ async def cancel_subscription(subscription_id: str, db: Session = Depends(get_db
         raise HTTPException(status_code=404, detail="Subscription not found in db")
 
     # Update the subscription status
-    subscription.status = 'canceled'
+    subscription.status = 'cancel_at_eop'
     db.commit()
 
     return {"message": "Subscription will be cancelled at the end of the current billing period",
@@ -373,3 +375,21 @@ def resume_subscription(subscription_id: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=500, detail="An unexpected error occurred.")
 
     return {"message": "Subscription resumed successfully"}
+
+
+@subscription_router.get("/api/subscriptions/purchase_history")
+def purchase_history(
+        db: Session = Depends(get_db),
+        token: str = Depends(oauth2_scheme)
+):
+    """
+    Get user purchase history
+    """
+
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    history = methods.order_history(user.id, db)
+    return history
+

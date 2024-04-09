@@ -99,7 +99,7 @@ class Subscription(Base):
 
     id = Column(Integer, primary_key=True)
     stripe_subscription_id = Column(String, unique=True)
-    stripe_customer_id = Column(String, unique=True)
+    stripe_customer_id = Column(String)
     plan_id = Column(Integer, ForeignKey('plans.id'))
     user_id = Column(Integer, ForeignKey('users.id'))
     status = Column(String) # e.g., 'active', 'past_due', 'canceled', etc.
