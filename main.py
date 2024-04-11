@@ -20,11 +20,14 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 import stripe
+from fastapi_cache import FastAPICache
+from fastapi_cache.backends.redis import RedisBackend
 
 # Initialize FastAPI and database
 app = FastAPI(
     docs_url="/docs",
     openapi_url='/openapi.json',
+    debug=True
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profile_pictures", StaticFiles(directory="profile_pictures"), name="profile_pictures")
@@ -42,6 +45,12 @@ app.include_router(resumer_parser_routes.resume_parser_router)
 
 
 stripe.api_key = constants.STRIPE_API_KEY
+
+@app.on_event("startup")
+async def startup():
+    redis_url = "redis://localhost"
+    FastAPICache.init(RedisBackend(redis_url), prefix="fastapi-cache")
+
 
 # database = Database(DATABASE_URL)
 #

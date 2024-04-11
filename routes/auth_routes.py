@@ -41,76 +41,6 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     }
 
 
-# @auth_router.post("/api/login", response_model=dict)
-# async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends()):
-#     # Authenticate user using email
-#     query = User.__table__.select().where(User.email == form_data.username)
-#     user = await database.fetch_one(query)
-#
-#     if user is None or not verify_password(form_data.password, user['hashed_password']):
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid credentials",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     elif user["role"] != "user":
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Insufficient privileges",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     elif user["status"] != "active":
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="User is blocked",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     elif user["status"] == "deleted":
-#         raise HTTPException(
-#             status_code=status.HTTP_401_UNAUTHORIZED,
-#             detail="Invalid credentials",
-#             headers={"WWW-Authenticate": "Bearer"},
-#         )
-#     else:
-#         access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
-#         access_token = create_access_token(
-#             data={"sub": user.username, "role": user.role},
-#             expires_delta=access_token_expires
-#         )
-#
-#         # Fetch user services
-#         user_services_query = """
-#             SELECT s.*
-#             FROM services s
-#             INNER JOIN user_services us ON s.service_id = us.service_id
-#             WHERE us.user_id = :user_id
-#         """
-#         user_services = await database.fetch_all(user_services_query, values={"user_id": user.id})
-#
-#         # Fetch company details
-#         company_query = """
-#             SELECT c.*
-#             FROM companies c
-#             WHERE c.user_id = :user_id
-#         """
-#         company = await database.fetch_one(company_query, values={"user_id": user.id})
-#
-#         # Update user token
-#         query = update(User.__table__).where(User.email == form_data.username).values(token=access_token)
-#         await database.execute(query)
-#
-#         return {
-#             "access_token": access_token,
-#             "token_type": "bearer",
-#             "role": user.role,
-#             "username": user.username,
-#             "email": user.email,
-#             "profile_picture": user.profile_picture,
-#             "services": [{"id": service["service_id"], "name": service["name"]} for service in user_services],
-#             "company": {"id": company["id"], "name": company["name"]} if company else None
-#         }
-
-
 @auth_router.post("/api/login", response_model=dict)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Authenticate user using email
@@ -272,36 +202,6 @@ async def reset_password(token, new_password, db: Session = Depends(get_db)):
         return {
             "message": "Password reset successfully"
         }
-
-# @auth_router.post("/api/register-admin")
-# async def register_admin(admin: AdminInfo):
-#     async with database.transaction():
-#         # Check if the email is already registered
-#         query = User.__table__.select().where(User.email == admin.email)
-#         existing_user = await database.fetch_one(query)
-#         if existing_user:
-#             raise HTTPException(status_code=400, detail="Email already registered")
-#
-#         # Create a new user
-#         db_user = await database.execute(User.__table__.insert().values(
-#             username=admin.username,
-#             email=admin.email,
-#             hashed_password=get_password_hash(admin.password),
-#             role=admin.role,
-#             status="active",
-#             created_datetime=datetime.datetime.utcnow()
-#         ))
-#
-#         inserted_user = await database.fetch_one(User.__table__.select().where(User.id == db_user))
-#
-#         return {
-#             "id": inserted_user["id"],
-#             "username": inserted_user["username"],
-#             "email": inserted_user["email"],
-#             "role": inserted_user["role"],
-#             "created_datetime": inserted_user["created_datetime"],
-#             "status": inserted_user["status"],
-#         }
 
 
 @auth_router.post("/api/register-admin")

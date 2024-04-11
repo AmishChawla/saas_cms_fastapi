@@ -6,12 +6,15 @@ from schemas import User, get_db, SessionLocal, Company
 from models import  UserCreate, TokenData
 from methods import get_password_hash, get_current_user, oauth2_scheme, get_user_from_token
 from sqlalchemy import update
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
 
 
 
 user_management_router = APIRouter()
 
 @user_management_router.get("/api/admin/users")
+@cache()
 async def get_all_users(
         token: str = Depends(oauth2_scheme),
 ):
@@ -32,6 +35,7 @@ async def get_all_users(
 
 ################################# GET ALL TRASH USERS #########################
 @user_management_router.get("/api/admin/trash-users")
+@cache()
 async def get_all_trash_users(
         token: str = Depends(oauth2_scheme),
 ):
@@ -70,6 +74,7 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme), 
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
+    FastAPICache.delete_url("/api/admin/users")
 
     return {
         "message": "User registered successfully",
@@ -104,6 +109,8 @@ async def admin_trash_user(
     # Delete the user
     user_to_delete.status = "deleted"
     db.commit()
+    FastAPICache.delete_url("/api/admin/users")
+    FastAPICache.delete_url("/api/admin/trash-users")
 
     return {"message": "User deleted successfully", "user_id": user_id}
 
@@ -131,6 +138,8 @@ async def admin_delete_user(
     # Delete the user
     user_to_delete.status = "active"
     db.commit()
+    FastAPICache.delete_url("/api/admin/users")
+    FastAPICache.delete_url("/api/admin/trash-users")
 
     return {"message": "User restored successfully", "user_id": user_id}
 
@@ -157,6 +166,7 @@ async def admin_delete_user(
     # Delete the user
     db.delete(user_to_delete)
     db.commit()
+    FastAPICache.delete_url("/api/admin/trash-users")
 
     return {"message": "User deleted successfully", "user_id": user_id}
 
@@ -164,6 +174,7 @@ async def admin_delete_user(
 
 ################################# VIEW USER PROFILE #########################
 @user_management_router.get('/api/admin/view-user/{user_id}')
+@cache()
 async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
@@ -205,6 +216,8 @@ async def edit_user(
     user_to_update.role = role
     user_to_update.status = status
     db.commit()
+    FastAPICache.delete_url("/api/admin/view-user/{user_id}")
+    FastAPICache.delete_url("/api/user-profile")
 
     # Update user services (assuming there's a Many-to-Many relationship between User and Services)
     # You need to implement this part based on your data model
@@ -216,6 +229,7 @@ async def edit_user(
 
 ################################################# USER PROFILE ###########################################################
 @user_management_router.get('/api/user-profile')
+@cache()
 async def user_profile(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(token=token).first()
@@ -299,6 +313,8 @@ async def update_profile(
 
         # Commit changes to the database
         db.commit()
+        FastAPICache.delete_url("/api/admin/view-user/{user_id}")
+        FastAPICache.delete_url("/api/user-profile")
 
         return {"message": "User profile updated successfully"}
 

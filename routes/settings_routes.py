@@ -9,6 +9,9 @@ from schemas import get_db, SessionLocal
 from methods import oauth2_scheme, get_user_from_token
 import stripe
 from sqlalchemy import text
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
+
 
 email_settings_router = APIRouter()
 plan_settings_router = APIRouter()
@@ -42,11 +45,13 @@ def create_admin_email_settings(smtp_settings: models.SMTPSettingsBase, token: s
     db.add(db_smtp_settings)
     db.commit()
     db.refresh(db_smtp_settings)
+    FastAPICache.delete_url("/api/smtp_settings/")
     return db_smtp_settings
 
 
 # Endpoint to get SMTP settings for admin
 @email_settings_router.get("/api/smtp_settings/", response_model=models.SMTPSettings)
+@cache()
 def get_smtp_settings(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Fetch the user based on the provided token
     user = get_user_from_token(token)
@@ -87,6 +92,7 @@ def update_admin_email_settings(smtp_settings_update: models.SMTPSettingsBase, t
 
     db.commit()
     db.refresh(existing_smtp_settings)
+    FastAPICache.delete_url("/api/smtp_settings/")
     return existing_smtp_settings
 
 
@@ -110,10 +116,12 @@ def create_plan(plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
+    FastAPICache.delete_url("/api/plans/")
     return db_plan
 
 
 @plan_settings_router.get("/api/plans/")
+@cache()
 async def get_all_plans(db: Session = Depends(get_db)):
     try:
         plans = db.query(schemas.Plan).all()
@@ -125,6 +133,7 @@ async def get_all_plans(db: Session = Depends(get_db)):
 
 
 @plan_settings_router.get("/api/plans/{plan_id}")
+@cache()
 def get_plan(plan_id: int):
     try:
         db = SessionLocal()
@@ -164,6 +173,8 @@ def update_plan(plan_id: int, plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
+    FastAPICache.delete_url("/api/plans/")
+    FastAPICache.delete_url("/api/plans/{plan_id}")
     return db_plan
 
 
@@ -179,6 +190,8 @@ def delete_plan(plan_id: int):
     db.delete(db_plan)
     db.commit()
     db.close()
+    FastAPICache.delete_url("/api/plans/")
+    FastAPICache.delete_url("/api/plans/{plan_id}")
     return {"message": "Plan deleted successfully"}
 
 

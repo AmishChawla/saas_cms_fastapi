@@ -6,6 +6,9 @@ import methods
 from schemas import User, ResumeData, get_db, SessionLocal, Service, UserServices, Company
 from methods import get_password_hash, verify_password, get_current_user, oauth2_scheme, \
     get_user_from_token
+from fastapi_cache.decorator import cache
+from fastapi_cache import FastAPICache
+
 
 
 resume_parser_router = APIRouter()
@@ -39,7 +42,6 @@ async def process_resume(
     db.add(new_resume_data)
     db.commit()
     db.refresh(new_resume_data)
-
     return {
         "id": new_resume_data.id,
         "user_id": new_resume_data.user_id,
@@ -62,4 +64,7 @@ def get_resume_history(db: Session = Depends(get_db)):
     entry and includes information such as the user ID,
     extracted data, and upload datetime.
     """
-    return methods.get_all_resume_data(db)
+    try:
+        return methods.get_all_resume_data(db)
+    except Exception as e:
+        print(e)
