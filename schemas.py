@@ -48,6 +48,7 @@ class User(Base):
     company = relationship("Company", back_populates="user")
     smtp_settings = relationship("SMTPSettings", uselist=False, back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
+    posts = relationship("Post", back_populates="user")
 
 
 class Service(Base):
@@ -132,7 +133,17 @@ class Company(Base):
 
     user = relationship("User", back_populates="company")
 
+class Post(Base):
+    __tablename__ = "posts"
 
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    author_name = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="posts")
 
 
 

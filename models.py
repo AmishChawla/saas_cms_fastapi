@@ -74,6 +74,10 @@ class Company(BaseModel):
     created_at: datetime
     user_id: int
 
+class PostCreate(BaseModel):
+    title: str
+    content: str
+
 
 class UserCompanyResponse(BaseModel):
     id: int
