@@ -31,7 +31,7 @@ async def create_service(name: str, description: str, db: Session = Depends(get_
         db.add(new_service)
         db.commit()
         db.refresh(new_service)
-        FastAPICache.delete_url("/api/services/all-services")
+        cache.clear("/api/services/all-services")
         return new_service
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Service with this name already exists")

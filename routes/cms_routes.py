@@ -50,7 +50,9 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
+    if current_user.role == 'user':
+        if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Create the post
 
     post = schemas.Post(title=post.title, content=post.content, user_id=current_user.id, author_name=current_user.username, created_at=datetime.datetime.utcnow())
