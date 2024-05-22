@@ -49,9 +49,11 @@ class User(Base):
     smtp_settings = relationship("SMTPSettings", uselist=False, back_populates="user")
     subscriptions = relationship("Subscription", back_populates="user")
     posts = relationship("Post", back_populates="user")
-
+    categories = relationship("Category", back_populates="user")
+    subcategories = relationship("SubCategory", back_populates="user")
 
 class Service(Base):
+
     __tablename__ = 'services'
 
     service_id = Column(Integer, primary_key=True)
@@ -146,6 +148,29 @@ class Post(Base):
     user = relationship("User", back_populates="posts")
 
 
+class Category(Base):
+    __tablename__ = "categories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    category = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="categories")
+    subcategories = relationship("SubCategory", back_populates="categories")
+
+
+class SubCategory(Base):
+    __tablename__ = "subcategories"
+
+    id = Column(Integer, primary_key=True, index=True)
+    subcategory = Column(String, nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="subcategories")
+    categories = relationship("Category", back_populates="subcategories")
 
 # Create all tables defined in the metadata
 Base.metadata.create_all(bind=engine)

@@ -79,6 +79,14 @@ class PostCreate(BaseModel):
     content: str
 
 
+class CategoryCreate(BaseModel):
+    category: str
+
+
+class SubcategoryCreate(BaseModel):
+    subcategory: str
+    category_id: int
+
 class UserCompanyResponse(BaseModel):
     id: int
     username: str
