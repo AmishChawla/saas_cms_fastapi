@@ -337,3 +337,5 @@ def order_history(user_id: int, db: Session):
     subscriptions = db.query(schemas.Subscription).filter(schemas.Subscription.user_id == user_id). \
         options(joinedload(schemas.Subscription.plan)).all()
     return subscriptions
+
+

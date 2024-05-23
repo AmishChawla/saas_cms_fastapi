@@ -9,7 +9,7 @@ from sqlalchemy.orm import Session, joinedload
 import methods
 import models
 import schemas
-from routes import auth_routes, cms_routes, services_routes, companies_routes, settings_routes, user_management_routes, resumer_parser_routes
+from routes import auth_routes, cms_routes, services_routes, companies_routes, settings_routes, user_management_routes, resumer_parser_routes, email_templating_routes
 from schemas import User, ResumeData, get_db, SessionLocal, Service, UserServices, Company
 from models import UserResponse, UserCreate, TokenData, UserFiles, AdminInfo
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -43,6 +43,8 @@ app.include_router(settings_routes.subscription_router)
 app.include_router(user_management_routes.user_management_router)
 app.include_router(resumer_parser_routes.resume_parser_router)
 app.include_router(cms_routes.cms_router)
+app.include_router(email_templating_routes.email_template_router)
+
 
 
 stripe.api_key = constants.STRIPE_API_KEY
