@@ -6,8 +6,8 @@ import methods
 from schemas import User, ResumeData, get_db, SessionLocal, Service, UserServices, Company
 from methods import get_password_hash, verify_password, get_current_user, oauth2_scheme, \
     get_user_from_token
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
 
 
 

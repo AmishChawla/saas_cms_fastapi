@@ -4,10 +4,10 @@ from sqlalchemy.orm import Session, joinedload
 from schemas import User, get_db, SessionLocal, Company
 from methods import get_password_hash, verify_password, get_current_user, oauth2_scheme, \
     get_user_from_token
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
 
 
 
@@ -39,10 +39,6 @@ def create_company(name: str, location: str, token: str = Depends(oauth2_scheme)
     db.add(company)
     db.commit()
     db.refresh(company)
-    FastAPICache.delete_url("/api/companies/")
-    FastAPICache.delete_url("/api/companies/{company_id}")
-    FastAPICache.delete_url("/api/user/company/")
-    FastAPICache.delete_url("/api/user-profile")
 
     return {
         "id": company.id,
@@ -70,9 +66,6 @@ def delete_company(company_id: int, db: Session = Depends(get_db)):
         raise HTTPException(status_code=404, detail="Company not found")
     db.delete(company)
     db.commit()
-    FastAPICache.delete_url("/api/companies/")
-    FastAPICache.delete_url("/api/companies/{company_id}")
-    FastAPICache.delete_url("/api/user/company/")
     return {"message": "Company deleted successfully"}
 
 
@@ -99,15 +92,12 @@ Returns: The updated company object.
         company.location = location
     db.commit()
     db.refresh(company)
-    FastAPICache.delete_url("/api/companies/")
-    FastAPICache.delete_url("/api/companies/{company_id}")
-    FastAPICache.delete_url("/api/user/company/")
+
     return company
 
 
 # Endpoint to get information about a specific company
 @company_router.get("/api/companies/{company_id}")
-@cache()
 def get_company(company_id: int, db: Session = Depends(get_db)):
     """
     Get Company
@@ -126,7 +116,6 @@ Returns: The company object containing its name, location, and associated user I
 
 # Endpoint to get the company of a user
 @company_router.get("/api/user/company/")
-@cache()
 def get_user_company(token: str = Depends(oauth2_scheme)):
     """
     Get company of the user
@@ -151,7 +140,6 @@ def get_user_company(token: str = Depends(oauth2_scheme)):
 
 # Endpoint to get all companies
 @company_router.get("/api/companies/")
-@cache()
 def get_all_companies(db: Session = Depends(get_db)):
     """
     Get All Companies

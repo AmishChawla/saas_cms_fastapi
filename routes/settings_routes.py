@@ -8,8 +8,8 @@ import schemas
 from schemas import get_db, SessionLocal
 from methods import oauth2_scheme, get_user_from_token
 import stripe
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
 
 
 email_settings_router = APIRouter()
@@ -60,12 +60,10 @@ def create_plan(plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
-    FastAPICache.delete_url("/api/plans/")
     return db_plan
 
 
 @plan_settings_router.get("/api/plans/")
-@cache()
 async def get_all_plans(db: Session = Depends(get_db)):
     try:
         plans = db.query(schemas.Plan).all()
@@ -77,7 +75,6 @@ async def get_all_plans(db: Session = Depends(get_db)):
 
 
 @plan_settings_router.get("/api/plans/{plan_id}")
-@cache()
 def get_plan(plan_id: int):
     try:
         db = SessionLocal()
@@ -117,8 +114,6 @@ def update_plan(plan_id: int, plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
-    FastAPICache.delete_url("/api/plans/")
-    FastAPICache.delete_url("/api/plans/{plan_id}")
     return db_plan
 
 
@@ -134,8 +129,6 @@ def delete_plan(plan_id: int):
     db.delete(db_plan)
     db.commit()
     db.close()
-    FastAPICache.delete_url("/api/plans/")
-    FastAPICache.delete_url("/api/plans/{plan_id}")
     return {"message": "Plan deleted successfully"}
 
 
