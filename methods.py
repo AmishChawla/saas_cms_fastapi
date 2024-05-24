@@ -162,7 +162,47 @@ def create_password_reset_token(email: str, expires_delta: timedelta):
 def admin_send_email(recipient_emails: List[str], message: str, subject: str, db_session: Session):
     print(f"trying to send email")
     try:
+
         smtp_settings = db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.id == 2).first()
+
+        if not smtp_settings:
+            raise HTTPException(
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+                detail="SMTP settings not found for user",
+            )
+
+        # Prepare the email message
+        msg = MIMEText(message, "html")
+        msg['Subject'] = subject
+        msg['From'] = smtp_settings.sender_email
+
+        # Connect to the email server and start TLS
+        server = SMTP(smtp_settings.smtp_server, smtp_settings.smtp_port)
+        server.starttls()
+
+        # Login to the email server
+        server.login(smtp_settings.sender_email, smtp_settings.smtp_password)
+
+        for recipient_email in recipient_emails:
+            msg['To'] = recipient_email
+
+            # Send the email
+            server.sendmail(smtp_settings.sender_email, recipient_email, msg.as_string())
+
+        server.quit()
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="Could not send email",
+        )
+
+
+def send_email(recipient_emails: List[str], message: str, subject: str, db_session: Session, role: str, user_id: str):
+    print(f"trying to send email")
+    try:
+        smtp_settings = db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.id == 2).first() if role == 'admin' else db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.user_id == user_id).first()
 
         if not smtp_settings:
             raise HTTPException(

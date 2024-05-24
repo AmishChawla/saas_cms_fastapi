@@ -145,4 +145,9 @@ class EmailTemplateCreate(BaseModel):
     subject: str
     body: str
 
+class Mail(BaseModel):
+    to: str
+    subject: str
+    body: str
+
 
