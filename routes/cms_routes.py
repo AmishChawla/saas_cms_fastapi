@@ -55,7 +55,7 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
             raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Create the post
 
-    post = schemas.Post(title=post.title, content=post.content, user_id=current_user.id, author_name=current_user.username, created_at=datetime.datetime.utcnow())
+    post = schemas.Post(title=post.title, content=post.content, user_id=current_user.id, author_name=current_user.username, created_at=datetime.datetime.utcnow(), category_id=post.category_id, subcategory_id=post.subcategory_id)
     db.add(post)
     db.commit()
     db.refresh(post)
@@ -127,6 +127,8 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     # Update the post
     db_post.title = post.title
     db_post.content = post.content
+    db_post.category_id = post.category_id
+    db_post.subcategory_id = post.subcategory_id
     db.commit()
     db.refresh(db_post)
 
@@ -180,7 +182,11 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        posts = db.query(schemas.Post).filter(schemas.Post.user_id == user.id).all()
+        posts = db.query(schemas.Post).options(
+            joinedload(schemas.Post.category),
+            joinedload(schemas.Post.subcategory)
+        ).filter(schemas.Post.user_id == user.id).all()
+
         return posts
     except Exception as e:
         print(e)
@@ -348,4 +354,12 @@ def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme),
 
     return {"detail": "Subcategory deleted successfully"}
 
+@cms_router.get('/api/category/{category_id}')
+def get_category_name(category_id, db: Session = Depends(get_db)):
+    category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
+    return category.category
 
+@cms_router.get('/api/subcategory/{subcategory_id}')
+def get_subcategory_name(subcategory_id, db: Session = Depends(get_db)):
+    subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id).first()
+    return subcategory.subcategory

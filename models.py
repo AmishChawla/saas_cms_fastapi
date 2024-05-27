@@ -77,6 +77,8 @@ class Company(BaseModel):
 class PostCreate(BaseModel):
     title: str
     content: str
+    category_id: int
+    subcategory_id: int
 
 
 class CategoryCreate(BaseModel):
