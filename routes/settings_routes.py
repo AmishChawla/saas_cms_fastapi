@@ -1,16 +1,15 @@
-from typing import List
-
-from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Form, APIRouter
+from fastapi import HTTPException, Depends, status, APIRouter
 from sqlalchemy.orm import Session, joinedload
+
+from crud import smtp_crud
 import methods
 import models
 import schemas
 from schemas import get_db, SessionLocal
 from methods import oauth2_scheme, get_user_from_token
 import stripe
-from sqlalchemy import text
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
 
 
 email_settings_router = APIRouter()
@@ -18,52 +17,18 @@ plan_settings_router = APIRouter()
 subscription_router = APIRouter()
 
 
-############################################### EMAIL SETTINGS FOR ADMIN AS OF NOW ##############################################
+############################################### EMAIL SETTINGS ##############################################
 @email_settings_router.post("/api/admin/email_settings/", response_model=models.SMTPSettings)
 def create_admin_email_settings(smtp_settings: models.SMTPSettingsBase, token: str = Depends(oauth2_scheme),
                                 db: Session = Depends(get_db)):
-    # Check if the user is an admin
-    user = get_user_from_token(token)
-    if user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admin users can add email settings")
-
-    # Check if the admin user already has email settings
-    existing_smtp_settings = db.query(schemas.SMTPSettings).filter(
-        schemas.SMTPSettings.id == 2).first()  # ID 2 is where admin smpt settings are stored.
-    if existing_smtp_settings:
-        raise HTTPException(status_code=400, detail="Admin email settings already exist")
-
-    # Create new email settings
-    db_smtp_settings = schemas.SMTPSettings(
-        user_id=user.id,
-        smtp_server=smtp_settings.smtp_server,
-        smtp_port=smtp_settings.smtp_port,
-        sender_email=smtp_settings.email,
-        smtp_username=smtp_settings.smtp_username,
-        smtp_password=smtp_settings.smtp_password
-    )
-    db.add(db_smtp_settings)
-    db.commit()
-    db.refresh(db_smtp_settings)
-    FastAPICache.delete_url("/api/smtp_settings/")
+    db_smtp_settings = smtp_crud.create_email_settings(smtp_settings=smtp_settings, token=token, db=db)
     return db_smtp_settings
 
 
 # Endpoint to get SMTP settings for admin
 @email_settings_router.get("/api/smtp_settings/", response_model=models.SMTPSettings)
-@cache()
 def get_smtp_settings(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Fetch the user based on the provided token
-    user = get_user_from_token(token)
-    if user is None:
-        raise HTTPException(status_code=404, detail="User not found")
-
-    # Fetch the SMTP settings associated with the user
-    smtp_settings = db.query(schemas.SMTPSettings).filter(
-        schemas.SMTPSettings.id == 2).first()  # ID 2 is where admin smpt settings are stored.
-    if smtp_settings is None:
-        raise HTTPException(status_code=404, detail="SMTP settings not found")
-
+    smtp_settings = smtp_crud.get_smtp_settings(token=token, db=db)
     return smtp_settings
 
 
@@ -71,29 +36,8 @@ def get_smtp_settings(token: str = Depends(oauth2_scheme), db: Session = Depends
 @email_settings_router.put("/api/admin/update-email-settings/", response_model=models.SMTPSettings)
 def update_admin_email_settings(smtp_settings_update: models.SMTPSettingsBase, token: str = Depends(oauth2_scheme),
                                 db: Session = Depends(get_db)):
-    # Fetch the user based on the provided token
-    user = get_user_from_token(token)
-    if user is None or user.role != "admin":
-        raise HTTPException(status_code=403, detail="Only admin users can update email settings")
-
-    # Fetch the existing SMTP settings associated with the user
-    existing_smtp_settings = db.query(schemas.SMTPSettings).filter(
-        schemas.SMTPSettings.id == 2).first()  # ID 2 is where admin smpt settings are stored.
-    if existing_smtp_settings is None:
-        raise HTTPException(status_code=404, detail="SMTP settings not found")
-
-    # Update the SMTP settings
-
-    existing_smtp_settings.smtp_server = smtp_settings_update.smtp_server
-    existing_smtp_settings.smtp_port = smtp_settings_update.smtp_port
-    existing_smtp_settings.smtp_username = smtp_settings_update.smtp_username
-    existing_smtp_settings.smtp_password = smtp_settings_update.smtp_password
-    existing_smtp_settings.sender_email = smtp_settings_update.sender_email
-
-    db.commit()
-    db.refresh(existing_smtp_settings)
-    FastAPICache.delete_url("/api/smtp_settings/")
-    return existing_smtp_settings
+    new_smtp_settings = smtp_crud.update_admin_email_settings(token=token, smtp_settings_update=smtp_settings_update, db=db)
+    return new_smtp_settings
 
 
 ###################################################### PLAN SETTINGS #############################################################
@@ -116,12 +60,10 @@ def create_plan(plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
-    FastAPICache.delete_url("/api/plans/")
     return db_plan
 
 
 @plan_settings_router.get("/api/plans/")
-@cache()
 async def get_all_plans(db: Session = Depends(get_db)):
     try:
         plans = db.query(schemas.Plan).all()
@@ -133,7 +75,6 @@ async def get_all_plans(db: Session = Depends(get_db)):
 
 
 @plan_settings_router.get("/api/plans/{plan_id}")
-@cache()
 def get_plan(plan_id: int):
     try:
         db = SessionLocal()
@@ -173,8 +114,6 @@ def update_plan(plan_id: int, plan: models.PlanBase):
     db.commit()
     db.refresh(db_plan)
     db.close()
-    FastAPICache.delete_url("/api/plans/")
-    FastAPICache.delete_url("/api/plans/{plan_id}")
     return db_plan
 
 
@@ -190,8 +129,6 @@ def delete_plan(plan_id: int):
     db.delete(db_plan)
     db.commit()
     db.close()
-    FastAPICache.delete_url("/api/plans/")
-    FastAPICache.delete_url("/api/plans/{plan_id}")
     return {"message": "Plan deleted successfully"}
 
 

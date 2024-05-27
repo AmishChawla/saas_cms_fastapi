@@ -140,3 +140,16 @@ class PlanResponse(PlanBase):
     id: int
     stripe_product_id: str  # New field for Stripe Product ID
     stripe_price_id: str
+
+
+class EmailTemplateCreate(BaseModel):
+    name: str
+    subject: str
+    body: str
+
+class Mail(BaseModel):
+    to: str
+    subject: str
+    body: str
+
+

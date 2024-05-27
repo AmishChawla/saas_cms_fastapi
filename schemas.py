@@ -29,6 +29,18 @@ class SMTPSettings(Base):
     user = relationship("User", back_populates="smtp_settings")
 
 
+class EmailTemplate(Base):
+    __tablename__ = 'email_templates'
+    id = Column(Integer, primary_key=True, autoincrement=True)
+    user_id = Column(Integer, nullable=False)
+    name = Column(String(100), nullable=False)
+    subject = Column(String(200), nullable=False)
+    body = Column(Text, nullable=False)
+
+    def __repr__(self):
+        return f'<EmailTemplate(name={self.name}, user_id={self.user_id})>'
+
+
 class User(Base):
     __tablename__ = "users"
     id = Column(Integer, primary_key=True, index=True)

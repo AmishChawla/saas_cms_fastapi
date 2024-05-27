@@ -3,8 +3,8 @@ from sqlalchemy.exc import IntegrityError
 from typing import List
 from sqlalchemy.orm import Session, joinedload
 from schemas import User, get_db, Service, UserServices
-from fastapi_cache.decorator import cache
-from fastapi_cache import FastAPICache
+# from fastapi_cache.decorator import cache
+# from fastapi_cache import FastAPICache
 
 
 
@@ -31,7 +31,6 @@ async def create_service(name: str, description: str, db: Session = Depends(get_
         db.add(new_service)
         db.commit()
         db.refresh(new_service)
-        cache.clear("/api/services/all-services")
         return new_service
     except IntegrityError:
         raise HTTPException(status_code=400, detail="Service with this name already exists")
@@ -53,7 +52,6 @@ async def delete_service(service_id: int, db: Session = Depends(get_db)):
     if service:
         db.delete(service)
         db.commit()
-        FastAPICache.delete_url("/api/services/all-services")
         return {"message": "Service deleted successfully"}
     else:
         raise HTTPException(status_code=404, detail="Service not found")
@@ -92,11 +90,6 @@ async def assign_services_to_user(user_id: int, service_ids: List[int], db: Sess
         db.add(user_service)
 
     db.commit()
-    FastAPICache.delete_url("/api/users/{user_id}/services")
-    FastAPICache.delete_url("/api/admin/view-user/{user_id}")
-    FastAPICache.delete_url("/api/user-profile")
-
-
     return {"message": "Services assigned to user successfully"}
 
 
@@ -120,14 +113,10 @@ async def remove_service_from_user(user_id: int, service_id: int, db: Session = 
 
     db.delete(user_service)
     db.commit()
-    FastAPICache.delete_url("/api/users/{user_id}/services")
-    FastAPICache.delete_url("/api/user-profile")
-
     return {"message": "Service removed from user successfully"}
 
 
 @services_router.get("/api/services/all-services")
-@cache()
 async def get_all_services(db: Session = Depends(get_db)):
     """
     Get all available services.
@@ -143,7 +132,6 @@ async def get_all_services(db: Session = Depends(get_db)):
 
 
 @services_router.get("/api/users/{user_id}/services")
-@cache()
 async def get_user_services(user_id: int, db: Session = Depends(get_db)):
     """
     Get all services associated with a specific user.
@@ -158,7 +146,6 @@ async def get_user_services(user_id: int, db: Session = Depends(get_db)):
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
-
     return user.services
 
 
@@ -186,14 +173,10 @@ async def update_service(service_id: int, service_data: dict, db: Session = Depe
 
     # Commit the changes to the database
     db.commit()
-    FastAPICache.delete_url("/api/services/all-services")
-    FastAPICache.delete_url("/api/services/{service_id}")
-
     return {"message": "Service updated successfully"}
 
 
 @services_router.get("/api/services/{service_id}")
-@cache()
 async def get_service(service_id: int, db: Session = Depends(get_db)):
     """
     Get information about a particular service by its ID.
