@@ -135,7 +135,7 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     return db_post
 
 @cms_router.get("/api/all-posts")
-def get_all_posts(db: Session = Depends(get_db)):
+def view_all_posts(db: Session = Depends(get_db)):
     """
     Get All Posts
 
@@ -173,7 +173,7 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
     """
     Get All Posts of a User
 
-    Endpoint: GET /api/all-posts/{user_id}/
+    Endpoint: GET /api/get_all-posts/{user_id}/
     Description: Retrieves all posts of a specific user from the database.
     Returns: List of all posts of the specified user.
     """
