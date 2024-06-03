@@ -89,6 +89,10 @@ class SubcategoryCreate(BaseModel):
     subcategory: str
     category_id: int
 
+
+class TagAdd(BaseModel):
+    tag: str
+
 class UserCompanyResponse(BaseModel):
     id: int
     username: str

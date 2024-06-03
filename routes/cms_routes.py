@@ -184,7 +184,8 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
 
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
-            joinedload(schemas.Post.subcategory)
+            joinedload(schemas.Post.subcategory),
+            joinedload(schemas.Post.tag)
         ).filter(schemas.Post.user_id == user.id).all()
 
         return posts
@@ -353,6 +354,84 @@ def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme),
     db.commit()
 
     return {"detail": "Subcategory deleted successfully"}
+
+
+
+@cms_router.post("/api/user/add-tags")
+def add_tags(request: models.TagAdd, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Create a new category instance
+    current_user = get_user_from_token(token)
+    new_tag = schemas.Tag(tag=request.tag, user_id=current_user.id)
+
+    # Add and commit the new category to the database
+    db.add(new_tag)
+    db.commit()
+    db.refresh(new_tag)
+
+    return new_tag
+
+
+@cms_router.put("/api/user/edit-tag/{tag_id}")
+def edit_tag(tag_id: int, request: models.TagAdd, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Get the current user from the token
+    current_user = get_user_from_token(token)
+
+    # Fetch the tag from the database
+    tag = db.query(schemas.Tag).filter(schemas.Tag.id == tag_id, schemas.Tag.user_id == current_user.id).first()
+
+    # Check if the tag exists and belongs to the current user
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found or you do not have permission to edit this tag")
+
+    # Update the tag's details
+    tag.tag = request.tag
+
+    # Commit the changes to the database
+    db.commit()
+    db.refresh(tag)
+
+    return tag
+
+
+@cms_router.delete("/api/user/delete-tag/{tag_id}")
+def delete_tag(tag_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Get the current user from the token
+    current_user = get_user_from_token(token)
+
+    # Fetch the tag from the database
+    tag = db.query(schemas.Tag).filter(schemas.Tag.id == tag_id, schemas.Tag.user_id == current_user.id).first()
+
+    # Check if the tag exists and belongs to the current user
+    if not tag:
+        raise HTTPException(status_code=404, detail="Tag not found or you do not have permission to delete this tag")
+
+    # Delete the tag
+    db.delete(tag)
+    db.commit()
+
+    return {"detail": "Tag deleted successfully"}
+
+
+
+@cms_router.get("/api/user-all-tags")
+def get_user_all_tags(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Get All Posts of a User
+
+    Endpoint: GET /api/all-posts/{user_id}/
+    Description: Retrieves all posts of a specific user from the database.
+    Returns: List of all posts of the specified user.
+    """
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        tags = db.query(schemas.Tag).filter(schemas.Tag.user_id == user.id).all()
+        return tags
+    except Exception as e:
+        print(e)
+
 
 @cms_router.get('/api/category/{category_id}')
 def get_category_name(category_id, db: Session = Depends(get_db)):
