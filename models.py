@@ -79,6 +79,7 @@ class PostCreate(BaseModel):
     content: str
     category_id: int
     subcategory_id: int
+    tag_id: int
 
 
 class CategoryCreate(BaseModel):

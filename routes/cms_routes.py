@@ -40,9 +40,9 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     Create Post
 
     Endpoint: POST /api/posts/create-post
-    Description: Creates a new post with the provided title, content, and user ID.
+    Description: Creates a new post with the provided title, content, user ID, category ID, subcategory ID, and tag ID.
     Parameters:
-    - post: The post data (title, content, user_id)
+    - post: The post data (title, content, category_id, subcategory_id, tag_id)
     - token: The authentication token
     Returns: The newly created post object.
     """
@@ -52,15 +52,26 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if current_user.role == 'user':
         if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
-            raise HTTPException(status_code=403, detail="User does not have access to this service")
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="User does not have access to this service")
+
     # Create the post
+    new_post = schemas.Post(
+        title=post.title,
+        content=post.content,
+        user_id=current_user.id,
+        author_name=current_user.username,
+        created_at=datetime.datetime.utcnow(),
+        category_id=post.category_id,
+        subcategory_id=post.subcategory_id,
+        tag_id=post.tag_id  # Include tag_id
+    )
 
-    post = schemas.Post(title=post.title, content=post.content, user_id=current_user.id, author_name=current_user.username, created_at=datetime.datetime.utcnow(), category_id=post.category_id, subcategory_id=post.subcategory_id)
-    db.add(post)
+    db.add(new_post)
     db.commit()
-    db.refresh(post)
+    db.refresh(new_post)
 
-    return post
+    return new_post
 
 
 @cms_router.delete("/api/posts/delete-post/{post_id}")
@@ -106,7 +117,7 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     Description: Updates the content of a post by its ID.
     Parameters:
     - post_id: The ID of the post to update.
-    - post: The updated post data (title, content)
+    - post: The updated post data (title, content, category_id, subcategory_id, tag_id)
     - token: The authentication token
     Returns: The updated post object.
     """
@@ -114,6 +125,10 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if current_user.role == 'user':
+        if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                                detail="User does not have access to this service")
 
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
@@ -129,10 +144,13 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     db_post.content = post.content
     db_post.category_id = post.category_id
     db_post.subcategory_id = post.subcategory_id
+    db_post.tag_id = post.tag_id  # Include tag_id
+
     db.commit()
     db.refresh(db_post)
 
     return db_post
+
 
 @cms_router.get("/api/all-posts")
 def view_all_posts(db: Session = Depends(get_db)):
@@ -192,6 +210,30 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
     except Exception as e:
         print(e)
 
+@cms_router.get("/api/user-posts/{username}")
+def get_posts_by_username(username: str, db: Session = Depends(get_db)):
+    """
+    Get All Posts by Username
+
+    Endpoint: GET /api/user-posts/{username}/
+    Description: Retrieves all posts of a specific user from the database by their username.
+    Returns: List of all posts of the specified user.
+    """
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        posts = db.query(schemas.Post).options(
+            joinedload(schemas.Post.category),
+            joinedload(schemas.Post.subcategory),
+            joinedload(schemas.Post.tag)
+        ).filter(schemas.Post.user_id == user.id).all()
+
+        return posts
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
 @cms_router.get("/api/categories/")
 def get_all_categories(db: Session = Depends(get_db)):
