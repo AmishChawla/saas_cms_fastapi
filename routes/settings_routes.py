@@ -1,3 +1,5 @@
+from typing import Optional
+
 from fastapi import HTTPException, Depends, status, APIRouter
 from sqlalchemy.orm import Session, joinedload
 
@@ -138,7 +140,7 @@ def delete_plan(plan_id: int):
 @subscription_router.post("/api/subscriptions/create-subscription")
 def create_subscription(
         plan_id: int,
-        stripe_token: str,
+        stripe_token: Optional[str] = None,
         db: Session = Depends(get_db),
         token: str = Depends(oauth2_scheme)
 ):
@@ -151,6 +153,25 @@ def create_subscription(
 
     if not user or not plan:
         raise HTTPException(status_code=404, detail="User or plan not found")
+
+    if plan.fees == 0:
+        existing_subscription = db.query(schemas.Subscription).filter_by(user_id=user.id, plan_id=plan_id).first()
+        if existing_subscription:
+            raise HTTPException(status_code=400, detail="Demo plan already used")
+
+        # Directly create a demo subscription without Stripe
+        db_subscription = schemas.Subscription(
+            stripe_subscription_id=None,  # No Stripe subscription ID for demo plan
+            stripe_customer_id=None,  # No Stripe customer ID for demo plan
+            plan_id=plan_id,
+            user_id=user.id,
+            status="active",  # Mark as active since it's a demo plan
+        )
+        db.add(db_subscription)
+        db.commit()
+        db.refresh(db_subscription)
+
+        return {"message": "Demo subscription successful", "subscription": db_subscription}
 
     try:
         # Check if the user already has a Stripe customer ID
@@ -167,27 +188,27 @@ def create_subscription(
             db.execute(update_query, {"customer_id": customer.id, "user_id": user.id})
             db.commit()
 
-        # Attach the payment method to the customer
+            print('Updated user stripe_customer_id')
 
-        payment_method = stripe.PaymentMethod.create(
-            type="card",
-            card={
-                "token": stripe_token
-            }
-        )
-        stripe.PaymentMethod.attach(
-            payment_method.id,
-            customer=user.stripe_customer_id,
-        )
+        if stripe_token:
+            payment_method = stripe.PaymentMethod.create(
+                type="card",
+                card={
+                    "token": stripe_token
+                }
+            )
+            stripe.PaymentMethod.attach(
+                payment_method.id,
+                customer=user.stripe_customer_id,
+            )
 
-        # Set the attached Payment Method as the default payment method for the customer
-        stripe.Customer.modify(
-            user.stripe_customer_id,
-            invoice_settings={
-                'default_payment_method': payment_method.id
-            }
-        )
-
+            # Set the attached Payment Method as the default payment method for the customer
+            stripe.Customer.modify(
+                user.stripe_customer_id,
+                invoice_settings={
+                    'default_payment_method': payment_method.id
+                }
+            )
         # Create a subscription for the user using the Stripe Price ID
         subscription = stripe.Subscription.create(
             customer=user.stripe_customer_id,
@@ -211,7 +232,13 @@ def create_subscription(
 
     except stripe.error.StripeError as e:
         # Handle Stripe API errors
+        print(e)
         raise HTTPException(status_code=500, detail=f"Stripe Error: {e}")
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=500, detail=f"Error: {e}")
+
 
 
 @subscription_router.get("/api/subscriptions/get-subscription/{subscription_id}")
@@ -362,4 +389,19 @@ def purchase_history(
 
     history = methods.order_history(user.id, db)
     return history
+################################################## IS SERVICE ALLOWED #############################################################
 
+@subscription_router.get("/api/subscriptions/is-service-allowed")
+def service_permission(
+        token: str = Depends(oauth2_scheme)
+):
+    """
+    Get user permission
+    """
+
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+
+    is_allowed = methods.is_service_allowed(user_id=user.id)
+    return is_allowed

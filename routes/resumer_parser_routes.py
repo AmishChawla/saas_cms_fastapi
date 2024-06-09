@@ -23,7 +23,7 @@ async def process_resume(
 ):
     db = SessionLocal()
     user = get_user_from_token(token)
-    if not methods.is_service_allowed(user_id=user.id, service_name="resume_parser"):
+    if not methods.is_service_allowed(user_id=user.id):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
 

@@ -15,6 +15,8 @@ email_template_router = APIRouter(prefix="/api/email-templates")
 def create_email_template(template: models.EmailTemplateCreate, token: str = Depends(oauth2_scheme),
                           db: Session = Depends(get_db)):
     user = get_user_from_token(token)
+    if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     email_template = email_templates_crud.create_email_template(template=template, db=db, user_id=user.id)
@@ -47,6 +49,8 @@ def update_email_template(template_id: int, template: models.EmailTemplateCreate
     user = get_user_from_token(token)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     else:
         new_template = email_templates_crud.update_email_template(template_id=template_id, template=template, db=db)
     return new_template
@@ -57,6 +61,8 @@ def delete_email_template(template_id: int, db: Session = Depends(get_db), token
     user = get_user_from_token(token)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     else:
         print('i am here')
         email_templates_crud.delete_email_template(template_id=template_id, db=db)
@@ -71,6 +77,9 @@ def send_email(mail: models.Mail, token: str = Depends(oauth2_scheme),
     user = get_user_from_token(token)
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
+    if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     methods.send_email(recipient_emails=[mail.to], message=mail.body, subject=mail.subject, role=user.role,
                        user_id=user.id)
     return "Mail Sent Successfully"

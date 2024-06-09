@@ -51,7 +51,7 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if current_user.role == 'user':
-        if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
+        if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Create the post
 
@@ -80,6 +80,8 @@ def delete_post(post_id: int, token: str = Depends(oauth2_scheme), db: Session =
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
@@ -115,6 +117,8 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
@@ -204,6 +208,8 @@ def get_subcategories_by_category(category_id: int, db: Session = Depends(get_db
 def create_category(request: models.CategoryCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Create a new category instance
     current_user = get_user_from_token(token)
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     new_category = schemas.Category(category=request.category, user_id=current_user.id)
 
     # Add and commit the new category to the database
@@ -249,6 +255,8 @@ def delete_user_category(category_id: int, token: str = Depends(oauth2_scheme), 
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Retrieve the post
     db_category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
@@ -284,6 +292,9 @@ def update_user_category(category_id: int, request: models.CategoryCreate, token
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     # Retrieve the category
     db_category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
     if not db_category:
@@ -307,6 +318,8 @@ def update_user_category(category_id: int, request: models.CategoryCreate, token
 def create_subcategory(request: models.SubcategoryCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Create a new category instance
     current_user = get_user_from_token(token)
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     new_subcategory = schemas.SubCategory(subcategory=request.subcategory, category_id= request.category_id, user_id=current_user.id)
 
     # Add and commit the new category to the database
@@ -321,6 +334,8 @@ def create_subcategory(request: models.SubcategoryCreate, token: str = Depends(o
 @cms_router.put("/api/user/update_subcategory/{subcategory_id}")
 def update_subcategory(subcategory_id: int, request: models.SubcategoryCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id, schemas.SubCategory.user_id == current_user.id).first()
 
     if not subcategory:
@@ -338,6 +353,10 @@ def update_subcategory(subcategory_id: int, request: models.SubcategoryCreate, t
 @cms_router.delete("/api/user/delete_subcategory/{subcategory_id}")
 def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
+
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id, schemas.SubCategory.user_id == current_user.id).first()
 
     if not subcategory:

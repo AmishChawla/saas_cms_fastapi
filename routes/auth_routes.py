@@ -227,3 +227,5 @@ async def register_admin(admin: AdminInfo, db: Session = Depends(get_db)):
         "created_datetime": new_user.created_datetime,
         "status": new_user.status,
     }
+
+

@@ -1,176 +1,48 @@
 <?xml version="1.0" ?>
 <data>
     <resume>
-        <name>Amish Chawla</name>
+        <name>AMISH CHAWLA</name>
         <email>amishchawla8@gmail.com</email>
         <mobile_number>8130261379</mobile_number>
-        <skills>Mathematics</skills>
-        <skills>C</skills>
-        <skills>Rest</skills>
-        <skills>Programming</skills>
-        <skills>Analytics</skills>
-        <skills>Access</skills>
-        <skills>Mysql</skills>
-        <skills>Html</skills>
-        <skills>C++</skills>
-        <skills>Flask</skills>
-        <skills>Ux</skills>
+        <skills>Design</skills>
+        <skills>Matlab</skills>
+        <skills>Website</skills>
         <skills>Php</skills>
         <skills>Python</skills>
-        <skills>Design</skills>
-        <skills>Engineering</skills>
-        <skills>Certification</skills>
-        <skills>System</skills>
-        <skills>Website</skills>
-        <skills>Ui</skills>
-        <skills>Mobile</skills>
-        <skills>Api</skills>
-        <skills>Javascript</skills>
-        <skills>Java</skills>
-        <skills>Css</skills>
-        <skills>Analysis</skills>
-        <skills>Database</skills>
-        <skills>Strategy</skills>
-        <skills>Coding</skills>
-        <skills>Algorithms</skills>
-        <skills>Cloud</skills>
-        <college_name>None</college_name>
-        <degree>B. E.</degree>
-        <designation>None</designation>
-        <experience>•  Weather Application :(Technologies used: Flutter, Dart, REST API integration, UI design , Aug 2021):</experience>
-        <experience>Developed a weather application using Flutter and Dart, integrating with the Open Weather API to collect and</experience>
-        <experience>display real-time weather data. The app provides information such as current temperature, humidity, pressure, wind</experience>
-        <experience>speed, and feels like temperature. Implemented a user-friendly interface to present the weather data in an easily</experience>
-        <experience>readable format.</experience>
-        <experience>INTERNSHIPS:</experience>
-        <experience>•  Aynsoft (June 2022): Developed a Flutter application that empowered small business owners to sell their</experience>
-        <experience>products online. Implemented essential features, including product listing. Collaborated with a team to integrate</experience>
-        <experience>banner ads using Google AdMob for monetization. Implemented user authentication functionality through REST</experience>
-        <experience>API, enabling login/signup for users. Demonstrated strong problem-solving skills, teamwork, and adaptability in an</experience>
-        <experience>internship setting.</experience>
-        <experience>POSITION OF RESPONSIBILITY</experience>
-        <experience>•  Volunteer at Top Healers – Helped in organising and conduction of healing camps.(December 2023)</experience>
-        <experience>EXTRA CURRICULAR ACHIEVEMENTS</experience>
-        <experience>•  Provided personalized academic support and tutoring services to 8 grade students.</experience>
-        <experience>•  Participated in several Table tennis competitions during school.</experience>
-        <experience>ADDITIONAL INFORMATION</experience>
-        <experience>Preferred Programming Language: JAVA</experience>
-        <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
-        <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
-        <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
-        <company_names>III</company_names>
-        <company_names>F. E.</company_names>
-        <no_of_pages>2</no_of_pages>
-        <total_experience>0.0</total_experience>
-    </resume>
-    <resume>
-        <name>Amish Chawla</name>
-        <email>amishchawla8@gmail.com</email>
-        <mobile_number>8130261379</mobile_number>
-        <skills>Mathematics</skills>
+        <skills>Payments</skills>
         <skills>C</skills>
-        <skills>Rest</skills>
-        <skills>Programming</skills>
-        <skills>Analytics</skills>
         <skills>Access</skills>
-        <skills>Mysql</skills>
+        <skills>Java</skills>
         <skills>Html</skills>
+        <skills>Ux</skills>
         <skills>C++</skills>
+        <skills>Api</skills>
+        <skills>Ai</skills>
+        <skills>Ui</skills>
+        <skills>Saas</skills>
+        <skills>Apis</skills>
+        <skills>Pandas</skills>
+        <skills>System</skills>
+        <skills>Database</skills>
+        <skills>Numpy</skills>
+        <skills>Css</skills>
+        <skills>Technical</skills>
         <skills>Seaborn</skills>
-        <skills>Flask</skills>
-        <skills>Ux</skills>
-        <skills>Php</skills>
-        <skills>Python</skills>
-        <skills>Design</skills>
-        <skills>Engineering</skills>
-        <skills>Certification</skills>
-        <skills>System</skills>
-        <skills>Website</skills>
-        <skills>Ui</skills>
-        <skills>Mobile</skills>
-        <skills>Api</skills>
+        <skills>Aws</skills>
         <skills>Javascript</skills>
-        <skills>Java</skills>
-        <skills>Css</skills>
-        <skills>Machine learning</skills>
+        <skills>Rest</skills>
+        <skills>Flask</skills>
         <skills>Analysis</skills>
-        <skills>Database</skills>
-        <skills>Strategy</skills>
-        <skills>Coding</skills>
-        <skills>Algorithms</skills>
-        <skills>Cloud</skills>
+        <skills>Github</skills>
         <college_name>None</college_name>
-        <degree>B. E.</degree>
-        <designation>None</designation>
-        <experience>•  Weather Application :(Technologies used: Flutter, Dart, REST API integration, UI design , Aug 2021):</experience>
-        <experience>Developed a weather application using Flutter and Dart, integrating with the Open Weather API to collect and</experience>
-        <experience>display real-time weather data. The app provides information such as current temperature, humidity, pressure, wind</experience>
-        <experience>speed, and feels like temperature. Implemented a user-friendly interface to present the weather data in an easily</experience>
-        <experience>readable format.</experience>
-        <experience>INTERNSHIPS:</experience>
-        <experience>•  Aynsoft (June 2022): Developed a Flutter application that empowered small business owners to sell their</experience>
-        <experience>products online. Implemented essential features, including product listing. Collaborated with a team to integrate</experience>
-        <experience>banner ads using Google AdMob for monetization. Implemented user authentication functionality through REST</experience>
-        <experience>API, enabling login/signup for users. Demonstrated strong problem-solving skills, teamwork, and adaptability in an</experience>
-        <experience>internship setting.</experience>
-        <experience>•  Teknobuilt (June - July 2023) (Python, Seaborn, Machine Learning, sklearn): Collected data for different</experience>
-        <experience>supplementary Cementous materials such as their CO2 emissions and cost per ton to understand the best trade-off</experience>
-        <experience>between CO2 and cost. Made a gradient boosting regression model to predict the CO2 emissions on mixing of</experience>
-        <experience>different Cementous materials. Achieved the R2 value of 0.8513. Made different regression models such as</experience>
-        <experience>Gradient Boosting Regression, KNN regression, Decision tree regression, Random forest regression,</experience>
-        <experience>Baysean regression, Neural Network regression, SVM regression to predict the carbon emissions of different</experience>
-        <experience>vehicles according to type of vehicle engine class of cars. Analysed the above models and realised that Neural</experience>
-        <experience>network regression had the least root mean square error meaning in is the best model among the above models.</experience>
-        <experience>POSITION OF RESPONSIBILITY</experience>
-        <experience>•  Volunteer at Top Healers – Helped in organising and conduction of healing camps.(December 2023)</experience>
-        <experience>EXTRA CURRICULAR ACHIEVEMENTS</experience>
-        <experience>•  Provided personalized academic support and tutoring services to 8 grade students.</experience>
-        <experience>•  Participated in several Table tennis competitions during school.</experience>
-        <experience>ADDITIONAL INFORMATION</experience>
-        <experience>Preferred Programming Language: JAVA</experience>
-        <experience>•  Other Known Languages and Frameworks: Python, Flask, Flutter, Dart, C, C++</experience>
-        <experience>•  Known Web Technologies: HTML, CSS, Bootstrap, JavaScript, MySQL, PHP</experience>
-        <experience>•  Hobbies:  Table Tennis, Lawn Tennis, Chess</experience>
-        <company_names>III</company_names>
-        <company_names>F. E.</company_names>
+        <degree>Bachelors of Technology</degree>
+        <designation>Software Engineer</designation>
+        <experience>and database management</experience>
+        <experience>BigIndia – B2B Application. Technologies used: Flutter, Dart, REST API integration, UI design. Devel-</experience>
+        <experience>oped a Flutter application that empowered small business owners to sell their products online. Implemented essential</experience>
+        <experience>features, including product listing. Integrated banner ads using Google AdMob for monetization.</experience>
+        <company_names>None</company_names>
         <no_of_pages>2</no_of_pages>
         <total_experience>0.0</total_experience>
-    </resume>
-    <resume>
-        <name>Name:</name>
-        <email>aryanlakde@gmail.com</email>
-        <mobile_number>8451870221</mobile_number>
-        <skills>Mathematics</skills>
-        <skills>C</skills>
-        <skills>Programming</skills>
-        <skills>Analytics</skills>
-        <skills>Tkinter</skills>
-        <skills>Mysql</skills>
-        <skills>Swift</skills>
-        <skills>Html</skills>
-        <skills>Html5</skills>
-        <skills>Php</skills>
-        <skills>Python</skills>
-        <skills>Engineering</skills>
-        <skills>Certification</skills>
-        <skills>System</skills>
-        <skills>Mobile</skills>
-        <skills>User experience</skills>
-        <skills>Ordering</skills>
-        <skills>Javascript</skills>
-        <skills>Java</skills>
-        <skills>English</skills>
-        <skills>Css</skills>
-        <skills>Analysis</skills>
-        <skills>Strategy</skills>
-        <skills>Video</skills>
-        <skills>Architecture</skills>
-        <college_name>None</college_name>
-        <degree>None</degree>
-        <designation>None</designation>
-        <experience>None</experience>
-        <company_names>None</company_names>
-        <no_of_pages>None</no_of_pages>
-        <total_experience>0</total_experience>
     </resume>
 </data>

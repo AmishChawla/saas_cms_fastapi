@@ -254,22 +254,35 @@ def send_password_reset_email(email: str, reset_token, db_session: Session):
         )
 
 
-def is_service_allowed(user_id: int, service_name: str):
+def is_service_allowed(user_id: int):
     """
-    Check if a service is allowed to a user.
-    :param user_id: (int) ID of the user.
-    :param service_name: Name of the service to check.
-    :return: True or false based on is a particular service available to user
+    Check if a service is allowed for a user.
+    :param user_id: (int) ID of the user
+    :return: True or False
     """
     db = SessionLocal()
     user = db.query(User).filter(User.id == user_id).first()
     if user is None:
         return False
-    for service in user.services:
-        if service.name == service_name:
-            return True
-    return False
 
+    if user.stripe_customer_id is None:
+        return False
+
+    subscription = db.query(schemas.Subscription).filter(schemas.Subscription.stripe_customer_id == user.stripe_customer_id).first()
+    if subscription is None:
+        return False
+
+    try:
+        stripe_subscription = stripe.Subscription.retrieve(subscription.stripe_subscription_id)
+        if stripe_subscription.status == 'active':
+            return True
+        return False
+    except stripe.error.StripeError as e:
+        print(f"Stripe Error: {e}")
+        return False
+    except Exception as e:
+        print(f"An unexpected error occurred: {e}")
+        return False
 
 def get_all_resume_data(db: Session):
     return db.query(schemas.ResumeData).all()
@@ -298,13 +311,17 @@ def create_stripe_product_and_price(plan):
         name=plan.plan_type_name,
         description=plan.plan_details,
     )
+    # Check if the plan is a demo plan
     price = stripe.Price.create(
         product=product.id,
         unit_amount=plan.fees * 100,  # for USD
         currency='usd',
-        recurring={'interval': "month",
-                   "interval_count": int(plan.time_period)},
+        recurring={
+            'interval': "month",
+            "interval_count": int(plan.time_period)
+        },
     )
+
     return product, price
 
 
