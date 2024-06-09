@@ -17,6 +17,7 @@ from databases import Database
 from datetime import timedelta
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload, selectinload
+from sqlalchemy import desc
 import methods
 import models
 import schemas
@@ -54,12 +55,6 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
 
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
-    # Create the post
-
-        if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="User does not have access to this service")
-
 
     # Create the post
     new_post = schemas.Post(
@@ -134,12 +129,9 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if current_user.role == 'user':
-        if not methods.is_service_allowed(user_id=current_user.id, service_name="CMS"):
-            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                                detail="User does not have access to this service")
 
-    if not methods.is_service_allowed(user_id=current_user.id):
-        raise HTTPException(status_code=403, detail="User does not have access to this service")
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
@@ -173,7 +165,7 @@ def view_all_posts(db: Session = Depends(get_db)):
     """
     try:
 
-        posts = db.query(schemas.Post).all()
+        posts = db.query(schemas.Post).order_by(desc(schemas.Post.created_at)).all()
         return posts
     except Exception as e:
         print(e)
@@ -214,7 +206,7 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
             joinedload(schemas.Post.tag)
-        ).filter(schemas.Post.user_id == user.id).all()
+        ).filter(schemas.Post.user_id == user.id).order_by(desc(schemas.Post.created_at)).all()
 
         return posts
     except Exception as e:
@@ -247,7 +239,7 @@ def get_posts_by_username(username: str, db: Session = Depends(get_db)):
 
 @cms_router.get("/api/categories/")
 def get_all_categories(db: Session = Depends(get_db)):
-    categories = db.query(schemas.Category).all()
+    categories = db.query(schemas.Category).order_by(desc(schemas.Category.created_at)).all()
     return categories
 
 
@@ -288,7 +280,7 @@ def get_user_all_categories(token: str = Depends(oauth2_scheme), db: Session = D
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        categories = db.query(schemas.Category).filter(schemas.Category.user_id == user.id).all()
+        categories = db.query(schemas.Category).filter(schemas.Category.user_id == user.id).order_by(desc(schemas.Category.created_at)).all()
         return categories
     except Exception as e:
         print(e)
@@ -494,7 +486,7 @@ def get_user_all_tags(token: str = Depends(oauth2_scheme), db: Session = Depends
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        tags = db.query(schemas.Tag).filter(schemas.Tag.user_id == user.id).all()
+        tags = db.query(schemas.Tag).filter(schemas.Tag.user_id == user.id).order_by(desc(schemas.Tag.created_at)).all()
         return tags
     except Exception as e:
         print(e)
