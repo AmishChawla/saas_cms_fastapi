@@ -243,8 +243,22 @@ async def user_profile(token: str = Depends(oauth2_scheme), db: Session = Depend
     current_active_plans = []
     subscriptions = user.subscriptions
     for subscription in subscriptions:
-        current_plan = methods.get_current_plan_details(stripe_subscription_id=subscription.stripe_subscription_id, db=db)
-        current_active_plans.append(current_plan)
+        if subscription.stripe_subscription_id is None:
+            plan = subscription.plan
+            current_plan = {
+                "stripe_subscription_id": None,
+                "plan_name": plan.plan_type_name,
+                "status": subscription.status,
+                "next_billing_date": None,
+                "cancel_at_period_end": True,
+                # Assuming next billing date is calculated as the last billing date plus the subscription period
+                "created_at": subscription.created_at,
+                "updated_at": subscription.updated_at
+            }
+            current_active_plans.append(current_plan)
+        else:
+            current_plan = methods.get_current_plan_details(stripe_subscription_id=subscription.stripe_subscription_id, db=db)
+            current_active_plans.append(current_plan)
 
     return {
         "id": user.id,

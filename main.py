@@ -22,6 +22,7 @@ from starlette.templating import Jinja2Templates
 import stripe
 from fastapi_cache import FastAPICache
 from fastapi_cache.backends.redis import RedisBackend
+from background_tasks import scheduler
 
 # Initialize FastAPI and database
 app = FastAPI(
@@ -49,10 +50,19 @@ app.include_router(email_templating_routes.email_template_router)
 
 stripe.api_key = constants.STRIPE_API_KEY
 
+
 @app.on_event("startup")
 async def startup():
     redis_url = "redis://localhost"
     FastAPICache.init(RedisBackend(redis_url), prefix="fastapi-cache")
+    if not scheduler.running:
+        scheduler.start()
+
+
+@app.on_event("shutdown")
+def shutdown_event():
+    if scheduler.running:
+        scheduler.shutdown()
 
 
 # database = Database(DATABASE_URL)

@@ -77,6 +77,9 @@ class Company(BaseModel):
 class PostCreate(BaseModel):
     title: str
     content: str
+    category_id: int
+    subcategory_id: int
+    tag_id: int
 
 
 class CategoryCreate(BaseModel):
@@ -86,6 +89,10 @@ class CategoryCreate(BaseModel):
 class SubcategoryCreate(BaseModel):
     subcategory: str
     category_id: int
+
+
+class TagAdd(BaseModel):
+    tag: str
 
 class UserCompanyResponse(BaseModel):
     id: int

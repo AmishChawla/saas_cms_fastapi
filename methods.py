@@ -12,7 +12,6 @@ from typing import Union, List
 from passlib.context import CryptContext
 from sqlalchemy.orm import joinedload
 
-
 import constants
 import models
 import schemas
@@ -202,7 +201,9 @@ def admin_send_email(recipient_emails: List[str], message: str, subject: str, db
 def send_email(recipient_emails: List[str], message: str, subject: str, db_session: Session, role: str, user_id: str):
     print(f"trying to send email")
     try:
-        smtp_settings = db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.id == 2).first() if role == 'admin' else db_session.query(schemas.SMTPSettings).filter(schemas.SMTPSettings.user_id == user_id).first()
+        smtp_settings = db_session.query(schemas.SMTPSettings).filter(
+            schemas.SMTPSettings.id == 2).first() if role == 'admin' else db_session.query(schemas.SMTPSettings).filter(
+            schemas.SMTPSettings.user_id == user_id).first()
 
         if not smtp_settings:
             raise HTTPException(
@@ -262,13 +263,27 @@ def is_service_allowed(user_id: int):
     """
     db = SessionLocal()
     user = db.query(User).filter(User.id == user_id).first()
+    print('here')
     if user is None:
         return False
+    print('here')
+    print(user.stripe_customer_id)
+    if user.stripe_customer_id is None or '':
+        subscriptions = user.subscriptions
+        print(len(subscriptions))
+        if subscriptions is []:
+            return False
+        else:
+            for subscription in subscriptions:
+                if subscription.status == 'active':
+                    return True
+                else:
+                    return False
 
-    if user.stripe_customer_id is None:
-        return False
 
-    subscription = db.query(schemas.Subscription).filter(schemas.Subscription.stripe_customer_id == user.stripe_customer_id).first()
+
+    subscription = db.query(schemas.Subscription).filter(
+        schemas.Subscription.stripe_customer_id == user.stripe_customer_id).first()
     if subscription is None:
         return False
 
@@ -283,6 +298,7 @@ def is_service_allowed(user_id: int):
     except Exception as e:
         print(f"An unexpected error occurred: {e}")
         return False
+
 
 def get_all_resume_data(db: Session):
     return db.query(schemas.ResumeData).all()
@@ -394,5 +410,3 @@ def order_history(user_id: int, db: Session):
     subscriptions = db.query(schemas.Subscription).filter(schemas.Subscription.user_id == user_id). \
         options(joinedload(schemas.Subscription.plan)).all()
     return subscriptions
-
-

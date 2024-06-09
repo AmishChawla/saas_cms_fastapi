@@ -63,6 +63,7 @@ class User(Base):
     posts = relationship("Post", back_populates="user")
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
+    tags = relationship("Tag", back_populates="user")
 
 class Service(Base):
 
@@ -155,10 +156,15 @@ class Post(Base):
     author_name = Column(String, nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
+    category_id = Column(Integer, ForeignKey('categories.id'))  # Updated to store category ID
+    subcategory_id = Column(Integer, ForeignKey('subcategories.id'))  # Updated to store subcategory ID
+    tag_id = Column(Integer, ForeignKey('tags.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="posts")
-
+    category = relationship("Category", back_populates="posts")
+    subcategory = relationship("SubCategory", back_populates="posts")
+    tag = relationship("Tag", back_populates="posts")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -169,8 +175,7 @@ class Category(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="categories")
-    subcategories = relationship("SubCategory", back_populates="categories")
-
+    posts = relationship("Post", back_populates="category")
 
 class SubCategory(Base):
     __tablename__ = "subcategories"
@@ -182,7 +187,19 @@ class SubCategory(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="subcategories")
-    categories = relationship("Category", back_populates="subcategories")
+    posts = relationship("Post", back_populates="subcategory")
+
+
+class Tag(Base):
+    __tablename__ = "tags"
+
+    id = Column(Integer, primary_key=True, index=True)
+    tag = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="tags")
+    posts = relationship("Post", back_populates="tag")
 
 # Create all tables defined in the metadata
 Base.metadata.create_all(bind=engine)
