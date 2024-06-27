@@ -64,7 +64,11 @@ class User(Base):
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
     tags = relationship("Tag", back_populates="user")
+
     media = relationship("Media", back_populates="user")
+
+    newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
+
 
 class Service(Base):
 
@@ -203,6 +207,7 @@ class Tag(Base):
     posts = relationship("Post", back_populates="tag")
 
 
+
 class Media(Base):
     __tablename__ = "media"
 
@@ -213,6 +218,23 @@ class Media(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="media")
+
+######################################################### NEWSLETTER ######################################################################
+
+
+class NewsLetterSubscription(Base):
+    __tablename__ = 'newsletter_subscriptions'
+    id = Column(Integer, primary_key=True)
+    subscriber_name = Column(String)
+    subscriber_email = Column(String)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship('User', back_populates='newsletter_subscriptions')
+
+
+
+
 
 # Create all tables defined in the metadata
 Base.metadata.create_all(bind=engine)

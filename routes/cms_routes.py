@@ -35,8 +35,13 @@ from starlette.templating import Jinja2Templates
 import stripe
 
 cms_router = APIRouter()
+
 MEDIA_DIRECTORY = "media/"
 os.makedirs(MEDIA_DIRECTORY, exist_ok=True)
+
+newsletter_router = APIRouter(prefix="/api/newsletter")
+
+
 
 @cms_router.post("/api/posts/create-post")
 def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -509,6 +514,7 @@ def get_subcategory_name(subcategory_id, db: Session = Depends(get_db)):
     return subcategory.subcategory
 
 
+
 @cms_router.post("/api/upload-multiple-files/")
 def upload_multiple_files(files: List[UploadFile] = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     print("ander aa gya")
@@ -554,12 +560,56 @@ def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depen
     Description: Retrieves all posts of a specific user from the database.
     Returns: List of all posts of the specified user.
     """
+
     try:
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
+
         medias = db.query(schemas.Media).filter(schemas.Media.user_id == user.id).order_by(desc(schemas.Media.uploaded_at)).all()
         return medias
     except Exception as e:
         print(e)
+
+@newsletter_router.post("/subscribe_newsletter")
+def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):
+    print('start')
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == subscribe_newsletter.username).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        new_subscriber_for_newsletter = schemas.NewsLetterSubscription(subscriber_name=subscribe_newsletter.subscriber_name,
+                                                                       subscriber_email=subscribe_newsletter.subscriber_email,
+                                                                       user_id=user.id,
+                                                                       created_at=datetime.datetime.utcnow())
+        print('addind to db')
+
+        db.add(new_subscriber_for_newsletter)
+        db.commit()
+        db.refresh(new_subscriber_for_newsletter)
+        print(new_subscriber_for_newsletter)
+        return new_subscriber_for_newsletter
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e)
+
+
+@newsletter_router.get("/newsletter-subscribers-for-user")
+def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    print('start')
+
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+
+        subscribers = db.query(schemas.NewsLetterSubscription).filter(schemas.NewsLetterSubscription.user_id == user.id).order_by(desc(schemas.NewsLetterSubscription.created_at)).all()
+        return subscribers
+    except Exception as e:
+        print(e)
+
+
+

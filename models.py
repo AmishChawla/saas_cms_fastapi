@@ -158,3 +158,10 @@ class Mail(BaseModel):
     body: str
 
 
+class NewsLetterSubscription(BaseModel):
+    subscriber_name: str
+    subscriber_email: str
+    username: str
+
+
+
