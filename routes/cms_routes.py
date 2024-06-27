@@ -536,7 +536,11 @@ def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db:
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
-        subscribers = db.query(schemas.NewsLetterSubscription).filter(schemas.NewsLetterSubscription.user_id == user.id).order_by(desc(schemas.NewsLetterSubscription.created_at)).all()
+        subscribers = db.query(schemas.NewsLetterSubscription) \
+            .filter(schemas.NewsLetterSubscription.user_id == user.id) \
+            .filter(schemas.NewsLetterSubscription.status == 'active') \
+            .order_by(desc(schemas.NewsLetterSubscription.created_at)) \
+            .all()
         return subscribers
     except Exception as e:
         print(e)

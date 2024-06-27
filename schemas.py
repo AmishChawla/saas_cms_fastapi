@@ -210,6 +210,7 @@ class NewsLetterSubscription(Base):
     id = Column(Integer, primary_key=True)
     subscriber_name = Column(String)
     subscriber_email = Column(String)
+    status = Column(String, default="active", index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
