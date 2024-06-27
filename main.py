@@ -1,5 +1,6 @@
 import datetime
 import math
+import os
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Form
 from sqlalchemy.exc import IntegrityError
 import constants
@@ -32,7 +33,9 @@ app = FastAPI(
 )
 app.mount("/static", StaticFiles(directory="static"), name="static")
 app.mount("/profile_pictures", StaticFiles(directory="profile_pictures"), name="profile_pictures")
+app.mount("/media", StaticFiles(directory="media"), name="media")
 templates = Jinja2Templates(directory="templates")
+
 
 #Routes
 app.include_router(auth_routes.auth_router)

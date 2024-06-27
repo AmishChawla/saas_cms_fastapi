@@ -64,7 +64,11 @@ class User(Base):
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
     tags = relationship("Tag", back_populates="user")
+
+    media = relationship("Media", back_populates="user")
+
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
+
 
 class Service(Base):
 
@@ -202,6 +206,19 @@ class Tag(Base):
     user = relationship("User", back_populates="tags")
     posts = relationship("Post", back_populates="tag")
 
+
+
+class Media(Base):
+    __tablename__ = "media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    filename = Column(String, nullable=False)
+    file_url = Column(String, nullable=False)
+    uploaded_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'))
+
+    user = relationship("User", back_populates="media")
+
 ######################################################### NEWSLETTER ######################################################################
 
 
@@ -215,6 +232,7 @@ class NewsLetterSubscription(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship('User', back_populates='newsletter_subscriptions')
+
 
 
 
