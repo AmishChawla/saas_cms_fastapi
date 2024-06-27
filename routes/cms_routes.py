@@ -33,6 +33,7 @@ from starlette.templating import Jinja2Templates
 import stripe
 
 cms_router = APIRouter()
+newsletter_router = APIRouter(prefix="/api/newsletter")
 
 
 @cms_router.post("/api/posts/create-post")
@@ -501,3 +502,44 @@ def get_category_name(category_id, db: Session = Depends(get_db)):
 def get_subcategory_name(subcategory_id, db: Session = Depends(get_db)):
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id).first()
     return subcategory.subcategory
+
+
+@newsletter_router.post("/subscribe_newsletter")
+def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):
+    print('start')
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == subscribe_newsletter.username).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        new_subscriber_for_newsletter = schemas.NewsLetterSubscription(subscriber_name=subscribe_newsletter.subscriber_name,
+                                                                       subscriber_email=subscribe_newsletter.subscriber_email,
+                                                                       user_id=user.id,
+                                                                       created_at=datetime.datetime.utcnow())
+        print('addind to db')
+
+        db.add(new_subscriber_for_newsletter)
+        db.commit()
+        db.refresh(new_subscriber_for_newsletter)
+        print(new_subscriber_for_newsletter)
+        return new_subscriber_for_newsletter
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e)
+
+
+@newsletter_router.get("/newsletter-subscribers-for-user")
+def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    print('start')
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        subscribers = db.query(schemas.NewsLetterSubscription).filter(schemas.NewsLetterSubscription.user_id == user.id).order_by(desc(schemas.NewsLetterSubscription.created_at)).all()
+        return subscribers
+    except Exception as e:
+        print(e)
+
+
+
