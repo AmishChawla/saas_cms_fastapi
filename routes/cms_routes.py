@@ -1,6 +1,8 @@
 import datetime
 import io
 import json
+import os
+import shutil
 import math
 import tempfile
 from pdfminer.high_level import extract_text
@@ -33,7 +35,8 @@ from starlette.templating import Jinja2Templates
 import stripe
 
 cms_router = APIRouter()
-
+MEDIA_DIRECTORY = "media/"
+os.makedirs(MEDIA_DIRECTORY, exist_ok=True)
 
 @cms_router.post("/api/posts/create-post")
 def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -186,6 +189,9 @@ Returns: The post object containing its name, location, and associated user ID.
     if not posts:
         raise HTTPException(status_code=404, detail="Post not found")
     return posts
+
+
+
 
 
 @cms_router.get("/api/user-all-posts")
@@ -501,3 +507,59 @@ def get_category_name(category_id, db: Session = Depends(get_db)):
 def get_subcategory_name(subcategory_id, db: Session = Depends(get_db)):
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id).first()
     return subcategory.subcategory
+
+
+@cms_router.post("/api/upload-multiple-files/")
+def upload_multiple_files(files: List[UploadFile] = File(...), db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    print("ander aa gya")
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    uploaded_filenames = []
+
+    for file in files:
+        print(file.filename)
+        file_location = os.path.join(MEDIA_DIRECTORY, file.filename)
+        print(file_location)
+        with open(file_location, "wb") as buffer:
+            shutil.copyfileobj(file.file, buffer)
+
+        # Store only the relative path in the database
+        relative_path = os.path.relpath(file_location, MEDIA_DIRECTORY)
+        print(relative_path)
+
+
+        new_media = schemas.Media(
+            filename=file.filename,
+            file_url=file_location,
+            user_id=user.id  # Use the user_id from the request or session
+        )
+        db.add(new_media)
+        db.commit()
+        db.refresh(new_media)
+
+        uploaded_filenames.append(file.filename)
+
+    return {
+        "filenames": uploaded_filenames
+    }
+
+
+@cms_router.get("/api/user-all-medias")
+def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Get All Posts of a User
+
+    Endpoint: GET /api/user-all-medias
+    Description: Retrieves all posts of a specific user from the database.
+    Returns: List of all posts of the specified user.
+    """
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        medias = db.query(schemas.Media).filter(schemas.Media.user_id == user.id).order_by(desc(schemas.Media.uploaded_at)).all()
+        return medias
+    except Exception as e:
+        print(e)
