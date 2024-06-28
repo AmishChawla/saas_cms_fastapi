@@ -211,10 +211,16 @@ def send_email(recipient_emails: List[str], message: str, subject: str, db_sessi
                 detail="SMTP settings not found for user",
             )
 
+        # message_template = f"""From: {smtp_settings.sender_email}\n
+        #                     Subject: {subject}\n
+        #                     {message}"""
         # Prepare the email message
         msg = MIMEText(message, "html")
         msg['Subject'] = subject
         msg['From'] = smtp_settings.sender_email
+        to_mail_list = ", ".join(recipient_emails)
+        msg['To'] = to_mail_list
+
 
         # Connect to the email server and start TLS
         server = SMTP(smtp_settings.smtp_server, smtp_settings.smtp_port)
@@ -222,12 +228,13 @@ def send_email(recipient_emails: List[str], message: str, subject: str, db_sessi
 
         # Login to the email server
         server.login(smtp_settings.sender_email, smtp_settings.smtp_password)
+        server.sendmail(smtp_settings.sender_email, recipient_emails, msg.as_string())
 
-        for recipient_email in recipient_emails:
-            msg['To'] = recipient_email
-
-            # Send the email
-            server.sendmail(smtp_settings.sender_email, recipient_email, msg.as_string())
+        # for recipient_email in recipient_emails:
+        #     msg['To'] = recipient_email
+        #
+        #     # Send the email
+        #     server.sendmail(smtp_settings.sender_email, recipient_email, msg.as_string())
 
         server.quit()
 
@@ -235,7 +242,7 @@ def send_email(recipient_emails: List[str], message: str, subject: str, db_sessi
         print(e)
         raise HTTPException(
             status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not send email",
+            detail=f"Could not send email + {e}",
         )
 
 

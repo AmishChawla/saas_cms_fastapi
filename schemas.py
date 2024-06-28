@@ -164,6 +164,7 @@ class Post(Base):
     category_id = Column(Integer, ForeignKey('categories.id'))  # Updated to store category ID
     subcategory_id = Column(Integer, ForeignKey('subcategories.id'))  # Updated to store subcategory ID
     tag_id = Column(Integer, ForeignKey('tags.id'))
+    status = Column(String, default="published", index=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="posts")

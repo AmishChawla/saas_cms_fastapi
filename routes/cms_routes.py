@@ -73,7 +73,8 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
         created_at=datetime.datetime.utcnow(),
         category_id=post.category_id,
         subcategory_id=post.subcategory_id,
-        tag_id=post.tag_id  # Include tag_id
+        tag_id=post.tag_id,
+        status=post.status
     )
 
     db.add(new_post)
@@ -607,13 +608,45 @@ def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db:
 
         subscribers = db.query(schemas.NewsLetterSubscription) \
             .filter(schemas.NewsLetterSubscription.user_id == user.id) \
-            .filter(schemas.NewsLetterSubscription.status == 'active') \
             .order_by(desc(schemas.NewsLetterSubscription.created_at)) \
             .all()
+        active_count = db.query(schemas.NewsLetterSubscription) \
+            .filter(schemas.NewsLetterSubscription.user_id == user.id) \
+            .filter(schemas.NewsLetterSubscription.status == "active")\
+            .count()
 
-        return subscribers
+        # Query to count inactive subscribers
+        inactive_count = db.query(schemas.NewsLetterSubscription) \
+            .filter(schemas.NewsLetterSubscription.user_id == user.id) \
+            .filter(schemas.NewsLetterSubscription.status == "inactive")\
+            .count()
+
+        return {
+            'subscribers': subscribers,
+            'active_sub_count' : active_count,
+            'inactive_sub_count': inactive_count
+        }
     except Exception as e:
         print(e)
 
+
+@newsletter_router.post("/send-newsletter")
+def send_newsletter(mail: models.Mail, token: str = Depends(oauth2_scheme),
+               db: Session = Depends(get_db)):
+    print('inside')
+    user = get_user_from_token(token)
+
+    if user is None:
+        raise HTTPException(status_code=404, detail="User not found")
+    if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    subscribers = db.query(schemas.NewsLetterSubscription.subscriber_email).join(User).filter(User.id == user.id).filter(schemas.NewsLetterSubscription.status == 'active').all()
+    subscriber_emails = [subscriber[0] for subscriber in subscribers]
+    print('got subscriber_list')
+
+    methods.send_email(recipient_emails=subscriber_emails, message=mail.body, subject=mail.subject, db_session=db, role=user.role,
+                       user_id=user.id)
+    return "Mail Sent Successfully"
 
 

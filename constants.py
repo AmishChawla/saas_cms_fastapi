@@ -17,3 +17,6 @@ STRIPE_API_KEY = os.getenv("STRIPE_SECRET_KEY")
 FLASK_URL = 'http://35.154.190.245:5000'
 
 
+
+
+
