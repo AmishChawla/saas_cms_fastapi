@@ -155,7 +155,9 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     db_post.content = post.content
     db_post.category_id = post.category_id
     db_post.subcategory_id = post.subcategory_id
-    db_post.tag_id = post.tag_id  # Include tag_id
+    db_post.tag_id = post.tag_id # Include tag_id
+    db_post.status = post.status
+    db_post.created_at = datetime.datetime.utcnow()
 
     db.commit()
     db.refresh(db_post)
@@ -242,7 +244,7 @@ def get_posts_by_username(username: str, db: Session = Depends(get_db)):
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
             joinedload(schemas.Post.tag)
-        ).filter(schemas.Post.user_id == user.id).all()
+        ).filter(schemas.Post.user_id == user.id).filter(schemas.Post.status == 'published').order_by(desc(schemas.Post.created_at)).all()
 
         return posts
     except Exception as e:
