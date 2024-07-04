@@ -1,6 +1,7 @@
-from typing import Union, List
+from typing import Union, List, Optional
 from pydantic import BaseModel, validator
 from datetime import datetime
+
 
 
 class TokenData(BaseModel):
@@ -86,6 +87,10 @@ class PostCreate(BaseModel):
 class CategoryCreate(BaseModel):
     category: str
 
+class CommentCreate(BaseModel):
+    post_id: int
+    reply_id: Optional[int] = None
+    comment: str
 
 class SubcategoryCreate(BaseModel):
     subcategory: str
