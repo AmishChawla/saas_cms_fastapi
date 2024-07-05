@@ -602,6 +602,46 @@ def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depen
         print(e)
 
 
+@cms_router.post("/api/post/add_comment")
+def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Retrieve current user from token
+    current_user = get_user_from_token(token)
+
+    # Check if user is authorized to add comments (if needed)
+    # Example: methods.is_service_allowed(user_id=current_user.id)
+    # if not methods.is_service_allowed(user_id=current_user.id):
+    #     raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    # Create a new comment instance
+    new_comment = schemas.Comment(
+        user_id=current_user.id,
+        post_id=request.post_id,
+        reply_id=request.reply_id,
+        comment=request.comment,
+
+    )
+
+    # Add and commit the new comment to the database
+    db.add(new_comment)
+    db.commit()
+    db.refresh(new_comment)
+
+    return new_comment
+
+
+@cms_router.get("/api/comment/all")
+def get_all_comments(db: Session = Depends(get_db)):
+    comments = db.query(schemas.Comment).all()
+    return comments
+
+@cms_router.get("/api/comment/by_post_id/{post_id}")
+def get_all_comments_by_post_id(post_id: int, db: Session = Depends(get_db)):
+    comments = db.query(schemas.Comment).options(
+            joinedload(schemas.Comment.posts),
+            joinedload(schemas.Comment.user)
+        ).filter(schemas.Comment.post_id == post_id).all()
+    return comments
+
 @newsletter_router.post("/subscribe_newsletter")
 def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):
     print('start')

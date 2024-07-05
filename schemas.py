@@ -64,7 +64,7 @@ class User(Base):
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
     tags = relationship("Tag", back_populates="user")
-
+    comments = relationship("Comment", back_populates="user")
     media = relationship("Media", back_populates="user")
 
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
@@ -171,6 +171,7 @@ class Post(Base):
     category = relationship("Category", back_populates="posts")
     subcategory = relationship("SubCategory", back_populates="posts")
     tag = relationship("Tag", back_populates="posts")
+    comment = relationship("Comment", back_populates="posts")
 
 class Category(Base):
     __tablename__ = "categories"
@@ -220,6 +221,21 @@ class Media(Base):
 
     user = relationship("User", back_populates="media")
 
+
+class Comment(Base):
+    __tablename__ = "comments"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    reply_id = Column(Integer, ForeignKey('comments.id'))
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    comment = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="comments")
+    replies = relationship("Comment", backref="parent_comment", remote_side=[id])
+    posts = relationship("Post", back_populates="comment")
 ######################################################### NEWSLETTER ######################################################################
 
 
