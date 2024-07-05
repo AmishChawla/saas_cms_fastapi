@@ -165,4 +165,9 @@ class NewsLetterSubscription(BaseModel):
     username: str
 
 
+class UnsubscribeNewsletter(BaseModel):
+    subscriber_email: str
+    username: str
+
+
 

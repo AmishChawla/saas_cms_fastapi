@@ -218,8 +218,11 @@ def send_email(recipient_emails: List[str], message: str, subject: str, db_sessi
         msg = MIMEText(message, "html")
         msg['Subject'] = subject
         msg['From'] = smtp_settings.sender_email
-        to_mail_list = ", ".join(recipient_emails)
-        msg['To'] = to_mail_list
+        msg['To'] = recipient_emails[0]
+        bcc_mail_list = ", ".join(recipient_emails)
+        msg['Bcc'] = bcc_mail_list
+        # to_mail_list = ", ".join(recipient_emails)
+        # msg['To'] = to_mail_list
 
 
         # Connect to the email server and start TLS
