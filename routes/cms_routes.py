@@ -169,7 +169,7 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     return db_post
 
 
-@cms_router.get("/api/all-posts")
+@cms_router.get("/api/all-posts/")
 def view_all_posts(db: Session = Depends(get_db)):
     """
     Get All Posts
@@ -627,6 +627,76 @@ def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_schem
     db.refresh(new_comment)
 
     return new_comment
+
+
+@cms_router.put("/api/comments/update-like/{comment_id}")
+def update_like(comment_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Update Like
+
+    Endpoint: PUT /api/comments/update-like/{comment_id}
+    Description: Updates the like value of a comment by its ID.
+    Parameters:
+    - comment_id: The ID of the comment to update.
+    - token: The authentication token
+    Returns: The updated comment object with the new like value.
+    """
+
+    # Get the current user from the token
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if current_user.role == 'user':
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    # Retrieve the comment
+    db_comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
+    if not db_comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    # Update the like value
+    db_comment.like = 1
+
+    db.commit()
+    db.refresh(db_comment)
+
+    return db_comment
+
+
+@cms_router.put("/api/comments/remove-like/{comment_id}")
+def remove_like(comment_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Update Like
+
+    Endpoint: PUT /api/comments/update-like/{comment_id}
+    Description: Updates the like value of a comment by its ID.
+    Parameters:
+    - comment_id: The ID of the comment to update.
+    - token: The authentication token
+    Returns: The updated comment object with the new like value.
+    """
+
+    # Get the current user from the token
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if current_user.role == 'user':
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    # Retrieve the comment
+    db_comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
+    if not db_comment:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+
+    # Update the like value
+    db_comment.like = 0
+
+    db.commit()
+    db.refresh(db_comment)
+
+    return db_comment
 
 
 @cms_router.get("/api/comment/all")

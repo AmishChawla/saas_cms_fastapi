@@ -231,6 +231,7 @@ class Comment(Base):
     post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
     comment = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+    like = Column(Integer, default=0, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="comments")
