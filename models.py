@@ -80,8 +80,8 @@ class PostCreate(BaseModel):
     content: str
     category_id: int
     subcategory_id: int
-    tag_id: int
     status: str
+    tags: List[str]
 
 
 class CategoryCreate(BaseModel):
@@ -96,9 +96,18 @@ class SubcategoryCreate(BaseModel):
     subcategory: str
     category_id: int
 
-
-class TagAdd(BaseModel):
+class TagBase(BaseModel):
     tag: str
+
+class TagCreate(TagBase):
+    pass
+
+class TagUpdate(TagBase):
+    pass
+
+class TagInDB(TagBase):
+    id: int
+
 
 class UserCompanyResponse(BaseModel):
     id: int

@@ -26,6 +26,7 @@ import constants
 import methods
 import models
 import schemas
+from crud.posts import tags_crud
 from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, Service, UserServices, Company
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
@@ -75,9 +76,17 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
         created_at=datetime.datetime.utcnow(),
         category_id=post.category_id,
         subcategory_id=post.subcategory_id,
-        tag_id=post.tag_id,
         status=post.status
     )
+
+    db.add(new_post)
+    db.commit()
+    db.refresh(new_post)
+
+    for tag in post.tags:
+        tag = tags_crud.create_tag(db, tag_create=models.TagCreate(tag=tag), user_id=current_user.id)
+        # Associate the tag with the post
+        new_post.tags.append(tag)
 
     db.add(new_post)
     db.commit()
@@ -159,15 +168,24 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
     db_post.content = post.content
     db_post.category_id = post.category_id
     db_post.subcategory_id = post.subcategory_id
-    db_post.tag_id = post.tag_id  # Include tag_id
     db_post.status = post.status
-    db_post.created_at = datetime.datetime.utcnow()
 
+    # Refresh the post to reflect changes
+    # db.refresh(db_post)
+
+    # Handle tags update
+    # Remove existing tags from the post
+    db_post.tags = []
+    for tag in post.tags:
+        tag = tags_crud.create_tag(db, tag_create=models.TagCreate(tag=tag), user_id=current_user.id)
+        # Associate the tag with the post
+        db_post.tags.append(tag)
+
+    # Commit the changes
     db.commit()
     db.refresh(db_post)
 
     return db_post
-
 
 @cms_router.get("/api/all-posts")
 def view_all_posts(db: Session = Depends(get_db)):
@@ -180,7 +198,11 @@ def view_all_posts(db: Session = Depends(get_db)):
     """
     try:
 
-        posts = db.query(schemas.Post).order_by(desc(schemas.Post.created_at)).all()
+        posts = db.query(schemas.Post).options(
+            joinedload(schemas.Post.category),
+            joinedload(schemas.Post.subcategory),
+            joinedload(schemas.Post.tags, innerjoin=True)  # Adjusted for many-to-many relationship
+        ).filter(schemas.Post.status == 'published').order_by(desc(schemas.Post.created_at)).all()
         return posts
     except Exception as e:
         print(e)
@@ -210,20 +232,19 @@ Returns: The post object containing its name, location, and associated user ID.
         "content": post.content,
         "category_id": post.category_id,
         "subcategory_id": post.subcategory_id,
-        "tag_id": post.tag_id,
+        "tags": post.tags,
         "status": post.status,
         "created_at": post.created_at.isoformat(),
         "category_name": category_name,  # Include the category name in the response
     }
     return response_data
 
-
 @cms_router.get("/api/user-all-posts")
 def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """
     Get All Posts of a User
 
-    Endpoint: GET /api/get_all-posts/{user_id}/
+    Endpoint: GET /api/user-all-posts/
     Description: Retrieves all posts of a specific user from the database.
     Returns: List of all posts of the specified user.
     """
@@ -235,8 +256,9 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
-            joinedload(schemas.Post.tag)
+            joinedload(schemas.Post.tags, innerjoin=True)  # Adjusted for many-to-many relationship
         ).filter(schemas.Post.user_id == user.id).order_by(desc(schemas.Post.created_at)).all()
+        print(posts[0])
 
         return posts
     except Exception as e:
@@ -260,7 +282,7 @@ def get_posts_by_username(username: str, db: Session = Depends(get_db)):
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
-            joinedload(schemas.Post.tag)
+            joinedload(schemas.Post.tags, innerjoin=True)
         ).filter(schemas.Post.user_id == user.id).filter(schemas.Post.status == 'published').order_by(
             desc(schemas.Post.created_at)).all()
 
@@ -457,79 +479,74 @@ def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme),
     return {"detail": "Subcategory deleted successfully"}
 
 
-@cms_router.post("/api/user/add-tags")
-def add_tags(request: models.TagAdd, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Create a new category instance
+@cms_router.post("/api/tags/")
+def create_tag_for_user(tag: models.TagCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
-    new_tag = schemas.Tag(tag=request.tag, user_id=current_user.id)
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    # Add and commit the new category to the database
-    db.add(new_tag)
-    db.commit()
-    db.refresh(new_tag)
+    return tags_crud.create_tag(db=db, tag_create=tag, user_id=current_user.id)
+
+@cms_router.get("/api/tags/")
+def read_tags(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    tags = tags_crud.get_tags(db, skip=skip, limit=limit)
+    return tags
+
+@cms_router.get("/api/tags/{tag_id}")
+def read_tag(tag_id: int, db: Session = Depends(get_db)):
+    db_tag = tags_crud.get_tag(db, tag_id=tag_id)
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
+    return db_tag
+
+
+@cms_router.put("/api/tags/update/{old_tag_id}")
+def update_existing_tag(old_tag_id: int,
+                        token: str = Depends(oauth2_scheme),
+                        new_tag_details: models.TagUpdate = Body(..., embed=True),
+                        db: Session = Depends(get_db)):
+    # Perform the update
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    new_tag = tags_crud.update_tag(db, current_user.id, old_tag_id, new_tag_details)
+
+    if not new_tag:
+        raise HTTPException(status_code=404, detail="Tag not found after update attempt.")
 
     return new_tag
 
 
-@cms_router.put("/api/user/edit-tag/{tag_id}")
-def edit_tag(tag_id: int, request: models.TagAdd, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Get the current user from the token
+@cms_router.delete("/api/tags/{tag_id}")
+def delete_tag_from_db(tag_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    db_tag = tags_crud.get_tag(db=db,tag_id=tag_id)
+    if db_tag is None:
+        raise HTTPException(status_code=404, detail="Tag not found")
 
-    # Fetch the tag from the database
-    tag = db.query(schemas.Tag).filter(schemas.Tag.id == tag_id, schemas.Tag.user_id == current_user.id).first()
+    db_tag = tags_crud.delete_tag_user_association(db, tag_id=tag_id, user_id=current_user.id)
+    return "deleted"
 
-    # Check if the tag exists and belongs to the current user
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found or you do not have permission to edit this tag")
-
-    # Update the tag's details
-    tag.tag = request.tag
-
-    # Commit the changes to the database
-    db.commit()
-    db.refresh(tag)
-
-    return tag
-
-
-@cms_router.delete("/api/user/delete-tag/{tag_id}")
-def delete_tag(tag_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    # Get the current user from the token
+@cms_router.get("/api/user-tags/")
+def user_all_tags(db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=404, detail="User not found")
+    # Query to get all tags related to the user, ordered by created_at DESC
 
-    # Fetch the tag from the database
-    tag = db.query(schemas.Tag).filter(schemas.Tag.id == tag_id, schemas.Tag.user_id == current_user.id).first()
+    tags = db.query(schemas.Tag). \
+        join(schemas.TagUser). \
+        filter(schemas.TagUser.user_id == current_user.id). \
+        order_by(schemas.Tag.created_at.desc()). \
+        all()
 
-    # Check if the tag exists and belongs to the current user
-    if not tag:
-        raise HTTPException(status_code=404, detail="Tag not found or you do not have permission to delete this tag")
+    # Convert tags to a list of dictionaries for JSON serialization
 
-    # Delete the tag
-    db.delete(tag)
-    db.commit()
-
-    return {"detail": "Tag deleted successfully"}
+    return tags
 
 
-@cms_router.get("/api/user-all-tags")
-def get_user_all_tags(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """
-    Get All Posts of a User
-
-    Endpoint: GET /api/all-posts/{user_id}/
-    Description: Retrieves all posts of a specific user from the database.
-    Returns: List of all posts of the specified user.
-    """
-    try:
-        user = get_user_from_token(token)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-
-        tags = db.query(schemas.Tag).filter(schemas.Tag.user_id == user.id).order_by(desc(schemas.Tag.created_at)).all()
-        return tags
-    except Exception as e:
-        print(e)
 
 
 @cms_router.get('/api/category/{category_id}')
@@ -573,7 +590,7 @@ def upload_multiple_files(files: List[UploadFile] = File(...), db: Session = Dep
         db.commit()
         db.refresh(new_media)
 
-        uploaded_filenames.append(file.filename)
+        uploaded_filenames.cms_routerend(file.filename)
 
     return {
         "filenames": uploaded_filenames
