@@ -11,7 +11,7 @@ EMAIL = os.getenv("EMAIL")
 EMAIL_PASSWORD = os.getenv("EMIL_PASSWORD")
 STRIPE_API_KEY = os.getenv("STRIPE_SECRET_KEY")
 
-FLASK_URL = 'http://127.0.0.1:5000'
+# FLASK_URL = 'http://127.0.0.1:5000'
 
 
 ALLOWED_MIMETYPES = (
@@ -26,7 +26,7 @@ ALLOWED_MIMETYPES = (
 )
 
 
-# FLASK_URL = 'http://35.154.190.245:5000'
+FLASK_URL = 'http://35.154.190.245:5000'
 
 
 
