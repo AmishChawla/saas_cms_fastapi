@@ -15,18 +15,18 @@ def create_tag(db: Session, tag_create: models.TagCreate, user_id: int):
     normalized_tag = tag_create.tag.strip().lower()
 
     # Check if the tag already exists
-    existing_tag = db.query(models.Tag).filter(models.Tag.tag == normalized_tag).first()
+    existing_tag = db.query(schemas.Tag).filter(schemas.Tag.tag == normalized_tag).first()
 
     if existing_tag:
         # Check if the association already exists
-        existing_association = db.query(models.TagUser).filter(
-            models.TagUser.user_id == user_id,
-            models.TagUser.tag_id == existing_tag.id
+        existing_association = db.query(schemas.TagUser).filter(
+            schemas.TagUser.user_id == user_id,
+            schemas.TagUser.tag_id == existing_tag.id
         ).first()
 
         if not existing_association:
             # Association does not exist, create it
-            tag_user = models.TagUser(user_id=user_id, tag_id=existing_tag.id)
+            tag_user = schemas.TagUser(user_id=user_id, tag_id=existing_tag.id)
             db.add(tag_user)
             db.commit()
             db.refresh(tag_user)
@@ -35,13 +35,13 @@ def create_tag(db: Session, tag_create: models.TagCreate, user_id: int):
             return existing_tag
     else:
         # Tag does not exist, create it
-        new_tag = models.Tag(tag=normalized_tag)
+        new_tag = schemas.Tag(tag=normalized_tag)
         db.add(new_tag)
         db.commit()
         db.refresh(new_tag)
 
         # Create the association in tag_user
-        tag_user = models.TagUser(user_id=user_id, tag_id=new_tag.id)
+        tag_user = schemas.TagUser(user_id=user_id, tag_id=new_tag.id)
         db.add(tag_user)
         db.commit()
         db.refresh(tag_user)
@@ -53,9 +53,9 @@ def create_tag(db: Session, tag_create: models.TagCreate, user_id: int):
 def update_tag(db: Session, user_id: int, old_tag_id: int, new_tag_details: models.TagUpdate):
     # Create a new tag with the updated details
     delete_tag_user_association(db=db,tag_id=old_tag_id, user_id=user_id)
-    new_tag_id = create_tag(db, new_tag_details, user_id=user_id)
+    new_tag = create_tag(db, new_tag_details, user_id=user_id)
     # Return the new tag details
-    return db.query(schemas.Tag).get(new_tag_id)
+    return new_tag
 
 
 def update_tag_user_associations(db: Session, old_tag_id: int, new_tag_id: int, user_id: int):
