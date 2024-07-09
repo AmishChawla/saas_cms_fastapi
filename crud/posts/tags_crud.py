@@ -2,6 +2,7 @@ from sqlalchemy.orm import Session
 import schemas, models
 from fastapi import APIRouter, FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query, \
     Form
+from sqlalchemy import desc
 
 def get_tag(db: Session, tag_id: int):
     return db.query(schemas.Tag).filter(schemas.Tag.id == tag_id).first()
@@ -47,7 +48,6 @@ def create_tag(db: Session, tag_create: models.TagCreate, user_id: int):
         db.refresh(tag_user)
 
         return new_tag
-
 
 
 def update_tag(db: Session, user_id: int, old_tag_id: int, new_tag_details: models.TagUpdate):
@@ -102,3 +102,9 @@ def delete_tag_user_association(db: Session, tag_id: int, user_id: int):
     # Commit the changes
     db.commit()
     return
+
+
+def get_posts_by_tag(db: Session, tag_id: int):
+    print("get_post_by tag")
+    posts = db.query(schemas.Post).join(schemas.TagPost).filter(schemas.TagPost.tag_id == tag_id).order_by(desc(schemas.Post.created_at)).all()
+    return posts

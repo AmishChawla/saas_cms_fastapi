@@ -1,4 +1,5 @@
 import os
+import re
 import tempfile
 import uuid
 from email.mime.text import MIMEText
@@ -409,6 +410,34 @@ def get_current_plan_details(stripe_subscription_id: str, db: Session):
         return subscription_details
     else:
         return None
+
+
+def generate_slug(title: str) -> str:
+    """
+    Generates a slug from the given title.
+    Replaces spaces with hyphens and converts to lowercase.
+    """
+    slug = re.sub(r'\s+', '-', title.lower())
+    return slug.strip('-')
+
+
+def ensure_unique_slug(slug: str, user_id: int, db_session) -> str:
+    """
+    Ensures the slug is unique for the given user.
+    Appends numbers to the slug if necessary.
+    """
+    existing_slugs = db_session.query(schemas.Post.slug).filter(schemas.Post.user_id == user_id).all()
+    existing_slugs = [slug[0] for slug in existing_slugs]
+
+    if slug in existing_slugs:
+        count = 1
+        while f"{slug}-{count}" in existing_slugs:
+            count += 1
+
+        return f"{slug}-{count}"
+    else:
+        return slug
+
 
 
 ################################## ORDER HISTORY #############################

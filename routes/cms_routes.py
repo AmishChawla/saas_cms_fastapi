@@ -67,6 +67,11 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
 
+    base_slug = methods.generate_slug(post.title)
+
+    # Ensure the slug is unique for the user
+    unique_slug = methods.ensure_unique_slug(base_slug, current_user.id, db)
+
     # Create the post
     new_post = schemas.Post(
         title=post.title,
@@ -76,12 +81,16 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
         created_at=datetime.datetime.utcnow(),
         category_id=post.category_id,
         subcategory_id=post.subcategory_id,
-        status=post.status
+        status=post.status,
+        slug=unique_slug
     )
 
     db.add(new_post)
     db.commit()
     db.refresh(new_post)
+
+    if len(post.tags) > 5:
+        raise HTTPException(status_code=400, detail="Maximum 5 tags allowed")
 
     for tag in post.tags:
         tag = tags_crud.create_tag(db, tag_create=models.TagCreate(tag=tag), user_id=current_user.id)
@@ -238,6 +247,34 @@ Returns: The post object containing its name, location, and associated user ID.
         "created_at": post.created_at.isoformat(),
         "category_name": category_name,  # Include the category name in the response
     }
+    return response_data
+
+
+@cms_router.get("/api/posts/{username}/{slug}")
+def read_post(username: str, slug: str, db: Session = Depends(get_db)):
+    # Query the database for a post with the given username and slug
+    post = db.query(schemas.Post).join(User).filter(User.username == username, schemas.Post.slug == slug).first()
+
+    if not post:
+        raise HTTPException(status_code=404, detail="Post not found")
+
+    category_name = post.category.category
+
+    response_data = {
+        "id": post.id,
+        "author_name": post.author_name,
+        "title": post.title,
+        "content": post.content,
+        "category_id": post.category_id,
+        "subcategory_id": post.subcategory_id,
+        "tags": post.tags,
+        "status": post.status,
+        "slug": post.slug,
+        "created_at": post.created_at.isoformat(),
+        "category_name": category_name,  # Include the category name in the response
+    }
+
+    # Convert the PostInDB model to PostBase for the response
     return response_data
 
 @cms_router.get("/api/user-all-posts")
@@ -548,6 +585,14 @@ def user_all_tags(db: Session = Depends(get_db),token: str = Depends(oauth2_sche
     return tags
 
 
+@cms_router.get("/api/posts/by-tag/{tag_id}")
+def read_posts_by_tag(tag_id: int, db: Session = Depends(get_db)):
+    posts = tags_crud.get_posts_by_tag(db, tag_id)
+    if posts is None:
+        raise HTTPException(status_code=404, detail="Posts not found for this tag")
+    return posts
+
+
 
 
 @cms_router.get('/api/category/{category_id}')
@@ -804,7 +849,7 @@ def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db:
 
 
 @newsletter_router.post("/send-newsletter")
-def send_newsletter(mail: models.Mail, token: str = Depends(oauth2_scheme),
+def send_newsletter(mail: models.Mail, post_url: str, token: str = Depends(oauth2_scheme),
                     db: Session = Depends(get_db)):
     print('inside')
     user = get_user_from_token(token)
@@ -824,7 +869,7 @@ def send_newsletter(mail: models.Mail, token: str = Depends(oauth2_scheme),
 {mail.body}
 <div style="text-align: center; font-family: Arial, sans-serif;">
     <!-- Visit Button -->
-    <a href="{constants.FLASK_URL}/{user.username}/posts" class="action-button" style="display: inline-block; padding: 12px 24px; margin: 8px; font-size: 16px; line-height: 1.5; color: #ffffff; background-color: #007bff; border-radius: 4px; text-decoration: none; transition: background-color 0.3s;">Visit</a>
+    <a href="{post_url}" class="action-button" style="display: inline-block; padding: 12px 24px; margin: 8px; font-size: 16px; line-height: 1.5; color: #ffffff; background-color: #007bff; border-radius: 4px; text-decoration: none; transition: background-color 0.3s;">Read more</a>
     
     <!-- Unsubscribe Button -->
     <a href="{constants.FLASK_URL}/unsubscribe-newsletter/{user.username}" class="action-button" style="display: inline-block; font-size: 16px; line-height: 1.5;">Unsubscribe</a>
@@ -864,3 +909,5 @@ def subscribe_newsletter(unsubscribe_newsletter: models.UnsubscribeNewsletter, d
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
