@@ -63,7 +63,8 @@ class User(Base):
     posts = relationship("Post", back_populates="user")
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
-    tags = relationship("Tag", back_populates="user")
+    favorites = relationship("TagUser", back_populates="user")
+
     comments = relationship("Comment", back_populates="user")
     media = relationship("Media", back_populates="user")
 
@@ -161,17 +162,18 @@ class Post(Base):
     author_name = Column(String, nullable=False)
     title = Column(String, nullable=False)
     content = Column(String, nullable=False)
-    category_id = Column(Integer, ForeignKey('categories.id'))  # Updated to store category ID
-    subcategory_id = Column(Integer, ForeignKey('subcategories.id'))  # Updated to store subcategory ID
-    tag_id = Column(Integer, ForeignKey('tags.id'))
+    category_id = Column(Integer, ForeignKey('categories.id'))
+    subcategory_id = Column(Integer, ForeignKey('subcategories.id'))
     status = Column(String, default="published", index=True)
+    slug = Column(String, unique=True, index=True, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="posts")
     category = relationship("Category", back_populates="posts")
     subcategory = relationship("SubCategory", back_populates="posts")
-    tag = relationship("Tag", back_populates="posts")
     comment = relationship("Comment", back_populates="posts")
+    tags = relationship("Tag", secondary="tag_post", back_populates="posts")
+
 
 class Category(Base):
     __tablename__ = "categories"
@@ -203,12 +205,30 @@ class Tag(Base):
     id = Column(Integer, primary_key=True, index=True)
     tag = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    user_id = Column(Integer, ForeignKey('users.id'))
 
-    user = relationship("User", back_populates="tags")
-    posts = relationship("Post", back_populates="tag")
+    # Corrected relationship names for clarity
+    favorited_by_users = relationship("TagUser", back_populates="tag")
+    posts = relationship(
+        "Post",
+        secondary="tag_post",
+        back_populates="tags"  # Corrected to match the relationship name on the Post model
+    )
 
 
+class TagUser(Base):
+    __tablename__ = "tag_user"
+
+    user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
+    tag_id = Column(Integer, ForeignKey('tags.id'), primary_key=True)
+
+    user = relationship("User", back_populates="favorites")
+    tag = relationship("Tag", back_populates="favorited_by_users")
+
+class TagPost(Base):
+    __tablename__ = "tag_post"
+
+    post_id = Column(Integer, ForeignKey("posts.id"), primary_key=True)
+    tag_id = Column(Integer, ForeignKey("tags.id"), primary_key=True)
 
 class Media(Base):
     __tablename__ = "media"
