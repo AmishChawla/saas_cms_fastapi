@@ -767,8 +767,19 @@ def remove_like(comment_id: int, token: str = Depends(oauth2_scheme), db: Sessio
 
 
 @cms_router.get("/api/comment/all")
-def get_all_comments(db: Session = Depends(get_db)):
-    comments = db.query(schemas.Comment).all()
+def get_all_comments(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    current_user = get_user_from_token(token)
+
+    # Get all post IDs created by the current user
+    user_post_ids = db.query(schemas.Post.id).filter(schemas.Post.user_id == current_user.id).all()
+    user_post_ids = [post.id for post in user_post_ids]
+
+    # Get comments for posts created by the current user
+    comments = db.query(schemas.Comment).options(
+        joinedload(schemas.Comment.posts),
+        joinedload(schemas.Comment.user)
+    ).filter(schemas.Comment.post_id.in_(user_post_ids)).all()
+
     return comments
 
 @cms_router.get("/api/comment/by_post_id/{post_id}")
@@ -778,6 +789,42 @@ def get_all_comments_by_post_id(post_id: int, db: Session = Depends(get_db)):
             joinedload(schemas.Comment.user)
         ).filter(schemas.Comment.post_id == post_id).all()
     return comments
+
+
+@cms_router.post("/api/comment/toggle_status/{comment_id}")
+def toggle_comment_status(comment_id: int,
+                          db: Session = Depends(get_db)):
+
+    comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # Ensure only the comment author or an admin can change the status
+
+
+    comment.active = True
+    db.commit()
+    return {"success": True}
+
+
+@cms_router.post("/api/comment/deactivate/{comment_id}")
+def deactivate_comment(comment_id: int, db: Session = Depends(get_db)):
+
+    comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
+
+    if not comment:
+        raise HTTPException(status_code=404, detail="Comment not found")
+
+    # Ensure only the comment author or an admin can deactivate the comment
+
+
+    # Deactivate the comment
+    comment.active = False
+    db.commit()
+
+    return {"message": "Comment deactivated successfully"}
+
 
 @newsletter_router.post("/subscribe_newsletter")
 def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):

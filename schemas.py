@@ -252,6 +252,7 @@ class Comment(Base):
     comment = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     like = Column(Integer, default=0, nullable=False)
+    active = Column(Boolean, default=True, nullable=False)
 
     # Relationships
     user = relationship("User", back_populates="comments")
