@@ -89,6 +89,8 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     db.commit()
     db.refresh(new_post)
 
+    methods.increment_category_count(db=db, category_id=post.category_id)
+
     if len(post.tags) > 5:
         raise HTTPException(status_code=400, detail="Maximum 5 tags allowed")
 
@@ -530,6 +532,7 @@ def read_tags(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     tags = tags_crud.get_tags(db, skip=skip, limit=limit)
     return tags
 
+
 @cms_router.get("/api/tags/{tag_id}")
 def read_tag(tag_id: int, db: Session = Depends(get_db)):
     db_tag = tags_crud.get_tag(db, tag_id=tag_id)
@@ -585,12 +588,15 @@ def user_all_tags(db: Session = Depends(get_db),token: str = Depends(oauth2_sche
     return tags
 
 
-@cms_router.get("/api/posts/by-tag/{tag_id}")
-def read_posts_by_tag(tag_id: int, db: Session = Depends(get_db)):
-    posts = tags_crud.get_posts_by_tag(db, tag_id)
-    if posts is None:
-        raise HTTPException(status_code=404, detail="Posts not found for this tag")
-    return posts
+@cms_router.get("/api/posts-by-tag/{username}/{tag_id}")
+def post_by_tag(tag_id: int, username: str, db: Session = Depends(get_db)):
+    try:
+        posts = tags_crud.get_posts_by_tag(db, tag_id, username)
+        return posts
+    except Exception as e:
+        raise e
+
+
 
 
 

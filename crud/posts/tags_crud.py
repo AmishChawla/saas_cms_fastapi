@@ -1,4 +1,4 @@
-from sqlalchemy.orm import Session
+from sqlalchemy.orm import Session, joinedload
 import schemas, models
 from fastapi import APIRouter, FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Path, Body, Query, \
     Form
@@ -104,7 +104,19 @@ def delete_tag_user_association(db: Session, tag_id: int, user_id: int):
     return
 
 
-def get_posts_by_tag(db: Session, tag_id: int):
+def get_posts_by_tag(db: Session, tag_id: int, username: str):
     print("get_post_by tag")
-    posts = db.query(schemas.Post).join(schemas.TagPost).filter(schemas.TagPost.tag_id == tag_id).order_by(desc(schemas.Post.created_at)).all()
+    # posts = db.query(schemas.Post).join(schemas.TagPost).filter(schemas.TagPost.tag_id == tag_id).order_by(desc(schemas.Post.created_at)).all()
+    posts = db.query(schemas.Post).options(
+        joinedload(schemas.Post.category),
+        joinedload(schemas.Post.subcategory),
+        joinedload(schemas.Post.tags, innerjoin=True)
+    ).filter(
+        schemas.Post.author_name == username,  # Filtering by username/user_id
+        schemas.Post.status == 'published',  # Existing filter for published status
+        schemas.Post.tags.any(schemas.Tag.id == tag_id)  # Filtering by tag_id
+    ).order_by(
+        desc(schemas.Post.created_at)
+    ).all()
+
     return posts

@@ -439,6 +439,12 @@ def ensure_unique_slug(slug: str, user_id: int, db_session) -> str:
         return slug
 
 
+def increment_category_count(db: Session, category_id: int):
+    category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
+    if category:
+        category.count += 1
+        db.commit()
+
 
 ################################## ORDER HISTORY #############################
 
