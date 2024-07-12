@@ -89,6 +89,8 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     db.commit()
     db.refresh(new_post)
 
+    methods.increment_category_count(db=db, category_id=post.category_id)
+
     if len(post.tags) > 5:
         raise HTTPException(status_code=400, detail="Maximum 5 tags allowed")
 

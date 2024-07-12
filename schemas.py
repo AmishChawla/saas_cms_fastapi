@@ -9,6 +9,8 @@ from constants import DATABASE_URL
 from sqlalchemy.ext.asyncio import create_async_engine, AsyncSession
 import databases
 import secrets
+from sqlalchemy.engine.reflection import Inspector
+
 
 
 
@@ -182,6 +184,7 @@ class Category(Base):
     category = Column(String, nullable=False)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     user_id = Column(Integer, ForeignKey('users.id'))
+    count = Column(Integer, default=0)
 
     user = relationship("User", back_populates="categories")
     posts = relationship("Post", back_populates="category")
@@ -220,9 +223,11 @@ class TagUser(Base):
 
     user_id = Column(Integer, ForeignKey('users.id'), primary_key=True)
     tag_id = Column(Integer, ForeignKey('tags.id'), primary_key=True)
+    post_count = Column(Integer, default=0)
 
     user = relationship("User", back_populates="favorites")
     tag = relationship("Tag", back_populates="favorited_by_users")
+
 
 class TagPost(Base):
     __tablename__ = "tag_post"
