@@ -577,7 +577,7 @@ def user_all_tags(db: Session = Depends(get_db),token: str = Depends(oauth2_sche
         raise HTTPException(status_code=404, detail="User not found")
     # Query to get all tags related to the user, ordered by created_at DESC
 
-    tags = db.query(schemas.Tag). \
+    tags = db.query(schemas.Tag, schemas.TagUser.post_count). \
         join(schemas.TagUser). \
         filter(schemas.TagUser.user_id == current_user.id). \
         order_by(schemas.Tag.created_at.desc()). \
