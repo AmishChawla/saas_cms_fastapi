@@ -64,7 +64,7 @@ class User(Base):
     categories = relationship("Category", back_populates="user")
     subcategories = relationship("SubCategory", back_populates="user")
     favorites = relationship("TagUser", back_populates="user")
-
+    commentslikes = relationship("Commentlike", back_populates="user")
     comments = relationship("Comment", back_populates="user")
     media = relationship("Media", back_populates="user")
 
@@ -173,6 +173,7 @@ class Post(Base):
     subcategory = relationship("SubCategory", back_populates="posts")
     comment = relationship("Comment", back_populates="posts")
     tags = relationship("Tag", secondary="tag_post", back_populates="posts")
+    commentslikes = relationship("Commentlike", back_populates="posts")
 
 
 class Category(Base):
@@ -258,6 +259,22 @@ class Comment(Base):
     user = relationship("User", back_populates="comments")
     replies = relationship("Comment", backref="parent_comment", remote_side=[id])
     posts = relationship("Post", back_populates="comment")
+    commentslikes = relationship("Commentlike", back_populates="comments")
+
+
+class Commentlike(Base):
+    __tablename__ = "commentslikes"
+
+    id = Column(Integer, primary_key=True, index=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    comment_id = Column(Integer, ForeignKey('comments.id'), nullable=False)
+
+    user = relationship("User", back_populates="commentslikes")
+    posts = relationship("Post", back_populates="commentslikes")
+    comments = relationship("Comment", back_populates="commentslikes")
+
 ######################################################### NEWSLETTER ######################################################################
 
 

@@ -692,74 +692,46 @@ def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_schem
     return new_comment
 
 
-@cms_router.put("/api/comments/update-like/{comment_id}")
-def update_like(comment_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """
-    Update Like
 
-    Endpoint: PUT /api/comments/update-like/{comment_id}
-    Description: Updates the like value of a comment by its ID.
-    Parameters:
-    - comment_id: The ID of the comment to update.
-    - token: The authentication token
-    Returns: The updated comment object with the new like value.
-    """
 
+@cms_router.post("/api/user/add_like_to_a_comment")
+def add_like_to_a_comment(request: models.AddLike, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Get the current user from the token
     current_user = get_user_from_token(token)
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if current_user.role == 'user':
-        if not methods.is_service_allowed(user_id=current_user.id):
-            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
-    # Retrieve the comment
-    db_comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
-    if not db_comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+    # Create a new Commentlike instance
+    new_like = schemas.Commentlike(post_id=request.post_id, comment_id=request.comment_id, user_id=current_user.id)
 
-    # Update the like value
-    db_comment.like = 1
-
+    # Add and commit the new like to the database
+    db.add(new_like)
     db.commit()
-    db.refresh(db_comment)
+    db.refresh(new_like)
 
-    return db_comment
+    return {"message": "Comment liked successfully", "like_id": new_like.id}
 
 
-@cms_router.put("/api/comments/remove-like/{comment_id}")
-def remove_like(comment_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
-    """
-    Update Like
-
-    Endpoint: PUT /api/comments/update-like/{comment_id}
-    Description: Updates the like value of a comment by its ID.
-    Parameters:
-    - comment_id: The ID of the comment to update.
-    - token: The authentication token
-    Returns: The updated comment object with the new like value.
-    """
-
+@cms_router.delete("/api/comments/remove-like/{comment_like_id}")
+def remove_like_from_a_comment(comment_like_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Get the current user from the token
     current_user = get_user_from_token(token)
-    if not current_user:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-    if current_user.role == 'user':
-        if not methods.is_service_allowed(user_id=current_user.id):
-            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
-    # Retrieve the comment
-    db_comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
-    if not db_comment:
-        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Comment not found")
+    # Find the like to be removed
+    like = db.query(schemas.Commentlike).filter(
+        schemas.Commentlike.id == comment_like_id,
+        schemas.Commentlike.user_id == current_user.id
+    ).first()
 
-    # Update the like value
-    db_comment.like = 0
+    # Check if the like exists
+    if not like:
+        raise HTTPException(status_code=404, detail="Like not found")
 
+    # Remove the like from the database
+    db.delete(like)
     db.commit()
-    db.refresh(db_comment)
 
-    return db_comment
+    return {"message": "Comment like removed successfully"}
+
+
 
 
 @cms_router.get("/api/comment/all")
@@ -786,6 +758,13 @@ def get_all_comments_by_post_id(post_id: int, db: Session = Depends(get_db)):
         ).filter(schemas.Comment.post_id == post_id).all()
     return comments
 
+
+
+@cms_router.get("/api/comment/like/{post_id}")
+def get_like_of_a_comment(post_id: int, db: Session = Depends(get_db)):
+
+    comments = db.query(schemas.Commentlike).filter(schemas.Commentlike.post_id == post_id).all()
+    return comments
 
 @cms_router.post("/api/comment/toggle_status/{comment_id}")
 def toggle_comment_status(comment_id: int,

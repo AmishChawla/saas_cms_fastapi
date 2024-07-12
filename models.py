@@ -92,6 +92,10 @@ class CommentCreate(BaseModel):
     reply_id: Optional[int] = None
     comment: str
 
+class AddLike(BaseModel):
+    post_id: int
+    comment_id: int
+
 class SubcategoryCreate(BaseModel):
     subcategory: str
     category_id: int
