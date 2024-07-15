@@ -116,7 +116,7 @@ def delete_post(post_id: int, token: str = Depends(oauth2_scheme), db: Session =
     Parameters:
     - post_id: The ID of the post to delete.
     - token: The authentication token
-    Returns: The deleted post object.
+    Returns: A message confirming the post deletion.
     """
 
     current_user = get_user_from_token(token)
@@ -124,23 +124,31 @@ def delete_post(post_id: int, token: str = Depends(oauth2_scheme), db: Session =
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
 
     if not methods.is_service_allowed(user_id=current_user.id):
-        raise HTTPException(status_code=403, detail="User does not have access to this service")
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
+
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Post not found")
 
     # Check if the current user is the owner of the post
-    if db_post.user_id != current_user.id and current_user.role != 'admin':
+    if db_post.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
                             detail="You do not have permission to delete this post")
+
+    db_comments = db.query(schemas.Comment).filter(schemas.Comment.post_id == post_id).all()
+    for comment in db_comments:
+        db.delete(comment)
+
+    db_commentslikes = db.query(schemas.Commentlike).filter(schemas.Commentlike.post_id == post_id).all()
+    for commentlike in db_commentslikes:
+        db.delete(commentlike)
 
     # Delete the post
     db.delete(db_post)
     db.commit()
 
-    return "Post is deleted successfully"
-
+    return {"message": "Post is deleted successfully"}
 
 @cms_router.put("/api/posts/update-post/{post_id}")
 def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oauth2_scheme),
