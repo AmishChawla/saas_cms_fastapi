@@ -45,7 +45,7 @@ def create_access_token(data: dict, expires_delta: Union[timedelta, None] = None
     if expires_delta:
         expire = datetime.utcnow() + expires_delta
     else:
-        expire = datetime.utcnow() + timedelta(minutes=15)
+        expire = datetime.utcnow() + timedelta(minutes=60)
     to_encode.update({"exp": expire})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
@@ -170,34 +170,30 @@ def admin_send_email(recipient_emails: List[str], message: str, subject: str, db
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
                 detail="SMTP settings not found for user",
             )
-
-        # Prepare the email message
+        print("got smtp settings for admin")
         msg = MIMEText(message, "html")
         msg['Subject'] = subject
         msg['From'] = smtp_settings.sender_email
+        # to_mail_list = ", ".join(recipient_emails)
+        # print(to_mail_list)
+        msg['To'] = recipient_emails[0]
+
 
         # Connect to the email server and start TLS
         server = SMTP(smtp_settings.smtp_server, smtp_settings.smtp_port)
         server.starttls()
-
+        print("tls started")
         # Login to the email server
         server.login(smtp_settings.sender_email, smtp_settings.smtp_password)
-
-        for recipient_email in recipient_emails:
-            msg['To'] = recipient_email
-
-            # Send the email
-            server.sendmail(smtp_settings.sender_email, recipient_email, msg.as_string())
+        print("logged in ")
+        server.sendmail(smtp_settings.sender_email, recipient_emails, msg.as_string())
+        print("mail sent")
 
         server.quit()
+        print("quit server")
 
     except Exception as e:
-        print(e)
-        raise HTTPException(
-            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
-            detail="Could not send email",
-        )
-
+        raise HTTPException(status_code=500, detail=str(e))
 
 def send_email(recipient_emails: List[str], message: str, subject: str, db_session: Session, role: str, user_id: str):
     print(f"trying to send email")

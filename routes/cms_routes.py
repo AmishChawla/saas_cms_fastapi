@@ -946,3 +946,45 @@ def subscribe_newsletter(unsubscribe_newsletter: models.UnsubscribeNewsletter, d
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@cms_router.post("/api/user-contact-form")
+def user_contact_form(username:str = Body(..., embed=True),
+                      firstname:str = Body(..., embed=True),
+                      lastname:str = Body(..., embed=True),
+                      email:str = Body(..., embed=True),
+                      message:str = Body(..., embed=True), db: Session = Depends(get_db)):
+    print('Received data:', username, firstname, lastname, email, message)
+    print('start')
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        smtp_settings = db.query(schemas.SMTPSettings).filter(
+            schemas.SMTPSettings.user_id == user.id).first()
+        recipient_email = smtp_settings.sender_email
+        print(recipient_email)
+
+        if recipient_email:
+            message_body = f"""
+            From: {firstname} {lastname} <br>
+            Email: {email} <br>
+            
+            {message}
+            """
+            subject_body = f"Message from {firstname} {lastname}"
+            methods.admin_send_email(recipient_emails=[recipient_email], message=message_body, subject=subject_body, db_session=db)
+        else:
+            return "sorry no contact info"
+
+        return "message sent"
+
+    except HTTPException as http_exc:
+        # Re-raise the HTTP exception if it's already one
+        raise http_exc
+
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e)
+
+
+
