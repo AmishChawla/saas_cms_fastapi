@@ -150,6 +150,7 @@ def delete_post(post_id: int, token: str = Depends(oauth2_scheme), db: Session =
 
     return {"message": "Post is deleted successfully"}
 
+
 @cms_router.put("/api/posts/update-post/{post_id}")
 def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oauth2_scheme),
                 db: Session = Depends(get_db)):
@@ -289,6 +290,7 @@ def read_post(username: str, slug: str, db: Session = Depends(get_db)):
 
     # Convert the PostInDB model to PostBase for the response
     return response_data
+
 
 @cms_router.get("/api/user-all-posts")
 def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
@@ -538,6 +540,7 @@ def create_tag_for_user(tag: models.TagCreate, token: str = Depends(oauth2_schem
 
     return tags_crud.create_tag(db=db, tag_create=tag, user_id=current_user.id)
 
+
 @cms_router.get("/api/tags/")
 def read_tags(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     tags = tags_crud.get_tags(db, skip=skip, limit=limit)
@@ -570,19 +573,20 @@ def update_existing_tag(old_tag_id: int,
 
 
 @cms_router.delete("/api/tags/{tag_id}")
-def delete_tag_from_db(tag_id: int, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+def delete_tag_from_db(tag_id: int, db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
-    db_tag = tags_crud.get_tag(db=db,tag_id=tag_id)
+    db_tag = tags_crud.get_tag(db=db, tag_id=tag_id)
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
 
     db_tag = tags_crud.delete_tag_user_association(db, tag_id=tag_id, user_id=current_user.id)
     return "deleted"
 
+
 @cms_router.get("/api/user-tags/")
-def user_all_tags(db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
+def user_all_tags(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
@@ -606,10 +610,6 @@ def post_by_tag(tag_id: int, username: str, db: Session = Depends(get_db)):
         return posts
     except Exception as e:
         raise e
-
-
-
-
 
 
 @cms_router.get('/api/category/{category_id}')
@@ -709,8 +709,6 @@ def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_schem
     return new_comment
 
 
-
-
 @cms_router.post("/api/user/add_like_to_a_comment")
 def add_like_to_a_comment(request: models.AddLike, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Get the current user from the token
@@ -728,7 +726,8 @@ def add_like_to_a_comment(request: models.AddLike, token: str = Depends(oauth2_s
 
 
 @cms_router.delete("/api/comments/remove-like/{comment_like_id}")
-def remove_like_from_a_comment(comment_like_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+def remove_like_from_a_comment(comment_like_id: int, token: str = Depends(oauth2_scheme),
+                               db: Session = Depends(get_db)):
     # Get the current user from the token
     current_user = get_user_from_token(token)
 
@@ -749,8 +748,6 @@ def remove_like_from_a_comment(comment_like_id: int, token: str = Depends(oauth2
     return {"message": "Comment like removed successfully"}
 
 
-
-
 @cms_router.get("/api/comment/all")
 def get_all_comments(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
@@ -767,33 +764,31 @@ def get_all_comments(token: str = Depends(oauth2_scheme), db: Session = Depends(
 
     return comments
 
+
 @cms_router.get("/api/comment/by_post_id/{post_id}")
 def get_all_comments_by_post_id(post_id: int, db: Session = Depends(get_db)):
     comments = db.query(schemas.Comment).options(
-            joinedload(schemas.Comment.posts),
-            joinedload(schemas.Comment.user)
-        ).filter(schemas.Comment.post_id == post_id).all()
+        joinedload(schemas.Comment.posts),
+        joinedload(schemas.Comment.user)
+    ).filter(schemas.Comment.post_id == post_id).all()
     return comments
-
 
 
 @cms_router.get("/api/comment/like/{post_id}")
 def get_like_of_a_comment(post_id: int, db: Session = Depends(get_db)):
-
     comments = db.query(schemas.Commentlike).filter(schemas.Commentlike.post_id == post_id).all()
     return comments
+
 
 @cms_router.post("/api/comment/toggle_status/{comment_id}")
 def toggle_comment_status(comment_id: int,
                           db: Session = Depends(get_db)):
-
     comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
 
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
     # Ensure only the comment author or an admin can change the status
-
 
     comment.active = True
     db.commit()
@@ -802,14 +797,12 @@ def toggle_comment_status(comment_id: int,
 
 @cms_router.post("/api/comment/deactivate/{comment_id}")
 def deactivate_comment(comment_id: int, db: Session = Depends(get_db)):
-
     comment = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
 
     if not comment:
         raise HTTPException(status_code=404, detail="Comment not found")
 
     # Ensure only the comment author or an admin can deactivate the comment
-
 
     # Deactivate the comment
     comment.active = False
@@ -955,11 +948,11 @@ def subscribe_newsletter(unsubscribe_newsletter: models.UnsubscribeNewsletter, d
 
 
 @cms_router.post("/api/user-contact-form")
-def user_contact_form(username:str = Body(..., embed=True),
-                      firstname:str = Body(..., embed=True),
-                      lastname:str = Body(..., embed=True),
-                      email:str = Body(..., embed=True),
-                      message:str = Body(..., embed=True), db: Session = Depends(get_db)):
+def user_contact_form(username: str = Body(..., embed=True),
+                      firstname: str = Body(..., embed=True),
+                      lastname: str = Body(..., embed=True),
+                      email: str = Body(..., embed=True),
+                      message: str = Body(..., embed=True), db: Session = Depends(get_db)):
     print('Received data:', username, firstname, lastname, email, message)
     print('start')
     try:
@@ -980,15 +973,18 @@ def user_contact_form(username:str = Body(..., embed=True),
             {message}
             """
             subject_body = f"Message from {firstname} {lastname}"
-            methods.admin_send_email(recipient_emails=[recipient_email], message=message_body, subject=subject_body, db_session=db)
+            methods.admin_send_email(recipient_emails=[recipient_email], message=message_body, subject=subject_body,
+                                     db_session=db)
 
-            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message, user_id=user.id, created_at=datetime.datetime.utcnow())
+            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message,
+                                            user_id=user.id, created_at=datetime.datetime.utcnow())
             db.add(new_feedback)
             db.commit()
             db.refresh(new_feedback)
 
         else:
-            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message, user_id=user.id, created_at=datetime.datetime.utcnow())
+            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message,
+                                            user_id=user.id, created_at=datetime.datetime.utcnow())
             db.add(new_feedback)
             db.commit()
             db.refresh(new_feedback)
@@ -1023,4 +1019,52 @@ def read_user_feedback(db: Session = Depends(get_db), token: str = Depends(oauth
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
+@cms_router.get("/api/posts/by-category-and-author-name/{category_id}/{author_name}")
+def read_posts_by_category_and_author_name_sorted(category_id: int, author_name: str, db: Session = Depends(get_db)):
+    """
+    Retrieve posts by category ID and author name, sorted by creation date in descending order.
+
+    :param category_id: The ID of the category to filter posts by.
+    :param author_name: The name of the author whose posts to retrieve.
+    :return: A list of Post objects filtered by the given category ID and author name, sorted by creation date in descending order.
+    """
+    # Query to fetch posts by category ID and author name, sorted by creation date
+    posts = (
+        db.query(schemas.Post)
+        .join(schemas.Category)
+        .filter(schemas.Category.id == category_id, schemas.Post.author_name == author_name)
+        .order_by(desc(schemas.Post.created_at))  # Sort by creation date in descending order
+        .all()
+    )
+
+    if not posts:
+        raise HTTPException(status_code=404, detail="No posts found for the specified category and author name.")
+
+    return posts
+
+
+@cms_router.get("/api/posts/by-tag-and-username/{username}/{tag_id}")
+def read_posts_by_tag_and_username(tag_id: int, username: str, db: Session = Depends(get_db)):
+    """
+    Retrieve posts by a single tag ID and a specific username, sorted by creation date in descending order.
+
+    :param tag_id: The ID of the tag to filter posts by.
+    :param username: The username of the author whose posts to retrieve.
+    :return: A list of Post objects filtered by the given tag ID and username, sorted by creation date in descending order.
+    """
+    # Query to fetch posts by tag ID and username, sorted by creation date
+    posts = (
+        db.query(schemas.Post)
+            .join(schemas.TagPost, schemas.TagPost.post_id == schemas.Post.id)
+            .join(schemas.Tag, schemas.Tag.id == schemas.TagPost.tag_id)
+            .join(User, User.id == schemas.Post.user_id)
+            .filter(schemas.TagPost.tag_id == tag_id, User.username == username)
+            .order_by(desc(schemas.Post.created_at))
+            .all()
+    )
+
+    if not posts:
+        raise HTTPException(status_code=404, detail="No posts found for the specified tag and username.")
+
+    return posts
 
