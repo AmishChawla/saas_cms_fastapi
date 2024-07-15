@@ -69,7 +69,7 @@ class User(Base):
     commentslikes = relationship("Commentlike", back_populates="user")
     comments = relationship("Comment", back_populates="user")
     media = relationship("Media", back_populates="user")
-
+    feedbacks = relationship('Feedback', back_populates='user')
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
 
 
@@ -281,6 +281,22 @@ class Commentlike(Base):
     user = relationship("User", back_populates="commentslikes")
     posts = relationship("Post", back_populates="commentslikes")
     comments = relationship("Comment", back_populates="commentslikes")
+
+
+class Feedback(Base):
+    __tablename__ = 'feedback'
+
+    id = Column(Integer, primary_key=True)
+    firstname = Column(String, nullable=False)
+    lastname = Column(String, nullable=False)
+    email = Column(String, nullable=False)
+    message = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+
+    # Relationship to User
+    user = relationship('User', back_populates='feedbacks')
 
 ######################################################### NEWSLETTER ######################################################################
 

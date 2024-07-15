@@ -981,7 +981,17 @@ def user_contact_form(username:str = Body(..., embed=True),
             """
             subject_body = f"Message from {firstname} {lastname}"
             methods.admin_send_email(recipient_emails=[recipient_email], message=message_body, subject=subject_body, db_session=db)
+
+            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message, user_id=user.id, created_at=datetime.datetime.utcnow())
+            db.add(new_feedback)
+            db.commit()
+            db.refresh(new_feedback)
+
         else:
+            new_feedback = schemas.Feedback(firstname=firstname, lastname=lastname, email=email, message=message, user_id=user.id, created_at=datetime.datetime.utcnow())
+            db.add(new_feedback)
+            db.commit()
+            db.refresh(new_feedback)
             return "sorry no contact info"
 
         return "message sent"
@@ -993,6 +1003,24 @@ def user_contact_form(username:str = Body(..., embed=True),
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=e)
+
+
+@cms_router.get("/api/user/all-feedbacks")
+def read_user_feedback(db: Session = Depends(get_db), token: str = Depends(oauth2_scheme)):
+    try:
+        user = get_user_from_token(token)
+        if user is None:
+            raise HTTPException(status_code=404, detail="User not found")
+
+        feedback_entries = db.query(schemas.Feedback).filter(schemas.Feedback.user_id == user.id).order_by(
+            desc(schemas.Feedback.created_at)).all()
+
+        # Convert the result to a list of dictionaries suitable for JSON serialization
+
+        return feedback_entries
+
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 
 
