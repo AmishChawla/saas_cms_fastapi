@@ -445,6 +445,10 @@ def increment_category_count(db: Session, category_id: int):
         category.count += 1
         db.commit()
 
+def increment_post_views(db: Session, post_id: int):
+    db.execute("UPDATE posts SET post_views = post_views + 1 WHERE id = :post_id", {"post_id": post_id})
+    db.commit()
+
 
 ################################## ORDER HISTORY #############################
 

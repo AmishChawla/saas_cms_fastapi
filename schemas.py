@@ -168,6 +168,8 @@ class Post(Base):
     subcategory_id = Column(Integer, ForeignKey('subcategories.id'))
     status = Column(String, default="published", index=True)
     slug = Column(String, unique=True, index=True, nullable=False)
+    post_views = Column(Integer, default=0)
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="posts")

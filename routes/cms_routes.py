@@ -271,6 +271,8 @@ def read_post(username: str, slug: str, db: Session = Depends(get_db)):
 
     category_name = post.category.category
 
+    methods.increment_post_views(db=db, post_id=post.id)
+
     response_data = {
         "id": post.id,
         "author_name": post.author_name,
