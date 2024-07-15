@@ -245,6 +245,7 @@ Returns: The post object containing its name, location, and associated user ID.
         "category_id": post.category_id,
         "subcategory_id": post.subcategory_id,
         "tags": post.tags,
+        "slug": post.slug,
         "status": post.status,
         "created_at": post.created_at.isoformat(),
         "category_name": category_name,  # Include the category name in the response
