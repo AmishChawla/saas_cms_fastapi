@@ -708,6 +708,37 @@ def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_schem
 
     return new_comment
 
+@cms_router.delete("/api/posts/delete-comment/{comment_id}")
+def delete_comment(comment_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Delete Comment
+
+    Endpoint: DELETE /api/posts/delete-comment/{comment_id}
+    Description: Deletes a comment by its ID.
+    Parameters:
+    - comment_id: The ID of the comment to delete.
+    - token: The authentication token
+    Returns: A message confirming the comment deletion.
+    """
+
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
+
+    db_comments = db.query(schemas.Comment).filter(schemas.Comment.id == comment_id).first()
+
+    db_commentslikes = db.query(schemas.Commentlike).filter(schemas.Commentlike.comment_id == comment_id).all()
+    for commentlike in db_commentslikes:
+        db.delete(commentlike)
+
+    # Delete the comment
+    db.delete(db_comments)
+    db.commit()
+
+    return {"message": "Comment is deleted successfully"}
 
 @cms_router.post("/api/user/add_like_to_a_comment")
 def add_like_to_a_comment(request: models.AddLike, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
