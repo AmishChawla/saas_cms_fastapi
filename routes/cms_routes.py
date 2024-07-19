@@ -842,6 +842,73 @@ def deactivate_comment(comment_id: int, db: Session = Depends(get_db)):
     return {"message": "Comment deactivated successfully"}
 
 
+@cms_router.post("/api/settings/update_comment_settings")
+def update_comment_settings(
+    request: models.CommentSettingsUpdate,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    # Retrieve current user from token
+    current_user = get_user_from_token(token)
+
+    # Retrieve existing user settings
+    user_settings = db.query(schemas.UserSetting).filter(schemas.UserSetting.user_id == current_user.id).first()
+    print(user_settings)
+    if user_settings:
+        # Update the existing user settings
+        user_settings.notify_linked_blogs = request.notify_linked_blogs
+        user_settings.allow_trackbacks = request.allow_trackbacks
+        user_settings.allow_comments = request.allow_comments
+        user_settings.comment_author_info = request.comment_author_info
+        user_settings.registered_users_comment = request.registered_users_comment
+        user_settings.auto_close_comments = request.auto_close_comments
+        user_settings.show_comment_cookies = request.show_comment_cookies
+        user_settings.enable_threaded_comments = request.enable_threaded_comments
+        user_settings.email_new_comment = request.email_new_comment
+        user_settings.email_held_moderation = request.email_held_moderation
+        user_settings.email_new_subscription = request.email_new_subscription
+        user_settings.comment_approval = request.comment_approval
+    else:
+        # Create new user settings if they don't exist
+        user_settings = schemas.UserSetting(
+            user_id=current_user.id,
+            notify_linked_blogs=request.notify_linked_blogs,
+            allow_trackbacks=request.allow_trackbacks,
+            allow_comments=request.allow_comments,
+            comment_author_info=request.comment_author_info,
+            registered_users_comment=request.registered_users_comment,
+            auto_close_comments=request.auto_close_comments,
+            show_comment_cookies=request.show_comment_cookies,
+            enable_threaded_comments=request.enable_threaded_comments,
+            email_new_comment=request.email_new_comment,
+            email_held_moderation=request.email_held_moderation,
+            email_new_subscription=request.email_new_subscription,
+            comment_approval=request.comment_approval
+        )
+        db.add(user_settings)
+
+    # Commit the changes to the database
+    db.commit()
+    db.refresh(user_settings)
+
+    return user_settings
+
+
+
+@cms_router.get("/api/settings/get_comment_settings")
+def get_comments_settings(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Retrieve current user from token
+    current_user = get_user_from_token(token)
+
+    # Get the user settings for the current user
+    user_comments_settings = db.query(schemas.UserSetting).filter(schemas.UserSetting.user_id == current_user.id).first()
+
+    if not user_comments_settings:
+        return {}
+
+    return user_comments_settings
+
+
 @newsletter_router.post("/subscribe_newsletter")
 def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):
     print('start')

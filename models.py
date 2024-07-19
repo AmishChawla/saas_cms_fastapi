@@ -92,6 +92,21 @@ class CommentCreate(BaseModel):
     reply_id: Optional[int] = None
     comment: str
 
+class CommentSettingsUpdate(BaseModel):
+    notify_linked_blogs: bool = False
+    allow_trackbacks: bool = False
+    allow_comments: bool = True
+    comment_author_info: bool = False
+    registered_users_comment: bool = False
+    auto_close_comments: int = 14
+    show_comment_cookies: bool = False
+    enable_threaded_comments: bool = False
+    email_new_comment: bool = False
+    email_held_moderation: bool = False
+    email_new_subscription: bool = False
+    comment_approval: str = 'manual'
+
+
 class AddLike(BaseModel):
     post_id: int
     comment_id: int
