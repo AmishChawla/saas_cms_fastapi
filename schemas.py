@@ -72,7 +72,7 @@ class User(Base):
     feedbacks = relationship('Feedback', back_populates='user')
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
     pages = relationship("Page", back_populates="user")
-
+    settings = relationship("UserSetting", back_populates="user", uselist=False)
 
 
 class Service(Base):
@@ -332,6 +332,25 @@ class NewsLetterSubscription(Base):
     user = relationship('User', back_populates='newsletter_subscriptions')
 
 
+class UserSetting(Base):
+    __tablename__ = "user_settings"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    notify_linked_blogs = Column(Boolean, default=False, nullable=False)
+    allow_trackbacks = Column(Boolean, default=False, nullable=False)
+    allow_comments = Column(Boolean, default=True, nullable=False)
+    comment_author_info = Column(Boolean, default=False, nullable=False)
+    registered_users_comment = Column(Boolean, default=False, nullable=False)
+    auto_close_comments = Column(Integer, default=14, nullable=False)
+    show_comment_cookies = Column(Boolean, default=False, nullable=False)
+    enable_threaded_comments = Column(Boolean, default=False, nullable=False)
+    email_new_comment = Column(Boolean, default=False, nullable=False)
+    email_held_moderation = Column(Boolean, default=False, nullable=False)
+    email_new_subscription = Column(Boolean, default=False, nullable=False)
+    comment_approval = Column(String, default='manual', nullable=False)
+
+    user = relationship("User", back_populates="settings")
 
 
 
