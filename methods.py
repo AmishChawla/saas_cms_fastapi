@@ -417,12 +417,29 @@ def generate_slug(title: str) -> str:
     return slug.strip('-')
 
 
-def ensure_unique_slug(slug: str, user_id: int, db_session) -> str:
+def ensure_unique_post_slug(slug: str, user_id: int, db_session) -> str:
     """
     Ensures the slug is unique for the given user.
     Appends numbers to the slug if necessary.
     """
     existing_slugs = db_session.query(schemas.Post.slug).filter(schemas.Post.user_id == user_id).all()
+    existing_slugs = [slug[0] for slug in existing_slugs]
+
+    if slug in existing_slugs:
+        count = 1
+        while f"{slug}-{count}" in existing_slugs:
+            count += 1
+
+        return f"{slug}-{count}"
+    else:
+        return slug
+
+def ensure_unique_page_slug(slug: str, user_id: int, db_session) -> str:
+    """
+    Ensures the slug is unique for the given user.
+    Appends numbers to the slug if necessary.
+    """
+    existing_slugs = db_session.query(schemas.Page.slug).filter(schemas.Page.user_id == user_id).all()
     existing_slugs = [slug[0] for slug in existing_slugs]
 
     if slug in existing_slugs:
@@ -443,6 +460,11 @@ def increment_category_count(db: Session, category_id: int):
 
 def increment_post_views(db: Session, post_id: int):
     db.execute("UPDATE posts SET post_views = post_views + 1 WHERE id = :post_id", {"post_id": post_id})
+    db.commit()
+
+
+def increment_page_views(db: Session, page_id: int):
+    db.execute("UPDATE pages SET page_views = page_views + 1 WHERE id = :page_id", {"page_id": page_id})
     db.commit()
 
 
