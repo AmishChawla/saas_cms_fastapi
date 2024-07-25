@@ -353,7 +353,6 @@ class UserSetting(Base):
     user = relationship("User", back_populates="settings")
 
 
-
 # Create all tables defined in the metadata
 Base.metadata.create_all(bind=engine)
 print("Tables created successfully.")
