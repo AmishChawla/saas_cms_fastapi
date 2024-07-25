@@ -441,12 +441,12 @@ def ensure_unique_page_slug(slug: str, user_id: int, db_session) -> str:
     """
     existing_slugs = db_session.query(schemas.Page.slug).filter(schemas.Page.user_id == user_id).all()
     existing_slugs = [slug[0] for slug in existing_slugs]
-
+    print(existing_slugs)
     if slug in existing_slugs:
         count = 1
         while f"{slug}-{count}" in existing_slugs:
             count += 1
-
+            print(f"{slug}-{count}")
         return f"{slug}-{count}"
     else:
         return slug

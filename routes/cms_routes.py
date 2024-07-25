@@ -1061,10 +1061,11 @@ def user_contact_form(username: str = Body(..., embed=True),
 
         smtp_settings = db.query(schemas.SMTPSettings).filter(
             schemas.SMTPSettings.user_id == user.id).first()
-        recipient_email = smtp_settings.sender_email
-        print(recipient_email)
 
-        if recipient_email:
+        if smtp_settings:
+            recipient_email = smtp_settings.sender_email
+            print(recipient_email)
+
             message_body = f"""
             From: {firstname} {lastname} <br>
             Email: {email} <br>
@@ -1190,9 +1191,11 @@ def create_page(page: models.PageCreate, token: str = Depends(oauth2_scheme), db
             raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     base_slug = methods.generate_slug(page.title)
+    print(base_slug)
 
     # Ensure the slug is unique for the user
     unique_slug = methods.ensure_unique_page_slug(base_slug, current_user.id, db)
+    print(unique_slug)
 
     # Create the post
     new_page = schemas.Page(
