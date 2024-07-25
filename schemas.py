@@ -72,6 +72,7 @@ class User(Base):
     feedbacks = relationship('Feedback', back_populates='user')
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
     settings = relationship("UserSetting", back_populates="user", uselist=False)
+    selected_media = relationship("SelectedMedia", back_populates="user")
 
 
 class Service(Base):
@@ -179,6 +180,7 @@ class Post(Base):
     comment = relationship("Comment", back_populates="posts")
     tags = relationship("Tag", secondary="tag_post", back_populates="posts")
     commentslikes = relationship("Commentlike", back_populates="posts")
+    selected_media = relationship("SelectedMedia", back_populates="post")
 
 
 class Category(Base):
@@ -249,6 +251,21 @@ class Media(Base):
     user_id = Column(Integer, ForeignKey('users.id'))
 
     user = relationship("User", back_populates="media")
+    selected_media = relationship("SelectedMedia", back_populates="media")
+
+
+class SelectedMedia(Base):
+    __tablename__ = "selected_media"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    media_id = Column(Integer, ForeignKey('media.id'), nullable=False)
+    post_id = Column(Integer, ForeignKey('posts.id'), nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="selected_media")
+    media = relationship("Media", back_populates="selected_media")
+    post = relationship("Post", back_populates="selected_media")
 
 
 class Comment(Base):
