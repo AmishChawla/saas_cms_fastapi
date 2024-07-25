@@ -71,6 +71,7 @@ class User(Base):
     media = relationship("Media", back_populates="user")
     feedbacks = relationship('Feedback', back_populates='user')
     newsletter_subscriptions = relationship('NewsLetterSubscription', back_populates='user')
+    pages = relationship("Page", back_populates="user")
     settings = relationship("UserSetting", back_populates="user", uselist=False)
     selected_media = relationship("SelectedMedia", back_populates="user")
 
@@ -181,6 +182,23 @@ class Post(Base):
     tags = relationship("Tag", secondary="tag_post", back_populates="posts")
     commentslikes = relationship("Commentlike", back_populates="posts")
     selected_media = relationship("SelectedMedia", back_populates="post")
+
+
+class Page(Base):
+    __tablename__ = "pages"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    author_name = Column(String, nullable=False)
+    title = Column(String, nullable=False)
+    content = Column(String, nullable=False)
+    status = Column(String, default="published", index=True)
+    slug = Column(String, index=True, nullable=False)
+    page_views = Column(Integer, default=0)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="pages")
+
 
 
 class Category(Base):

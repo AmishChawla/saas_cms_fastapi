@@ -83,6 +83,10 @@ class PostCreate(BaseModel):
     status: str
     tags: List[str]
 
+class PageCreate(BaseModel):
+    title: str
+    content: str
+    status: str
 
 class CategoryCreate(BaseModel):
     category: str

@@ -39,6 +39,7 @@ from starlette.templating import Jinja2Templates
 import stripe
 
 cms_router = APIRouter()
+pages_router = APIRouter(prefix="/api/page")
 
 MEDIA_DIRECTORY = "media/"
 os.makedirs(MEDIA_DIRECTORY, exist_ok=True)
@@ -70,7 +71,7 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
     base_slug = methods.generate_slug(post.title)
 
     # Ensure the slug is unique for the user
-    unique_slug = methods.ensure_unique_slug(base_slug, current_user.id, db)
+    unique_slug = methods.ensure_unique_post_slug(base_slug, current_user.id, db)
 
     # Create the post
     new_post = schemas.Post(
@@ -1060,10 +1061,11 @@ def user_contact_form(username: str = Body(..., embed=True),
 
         smtp_settings = db.query(schemas.SMTPSettings).filter(
             schemas.SMTPSettings.user_id == user.id).first()
-        recipient_email = smtp_settings.sender_email
-        print(recipient_email)
 
-        if recipient_email:
+        if smtp_settings:
+            recipient_email = smtp_settings.sender_email
+            print(recipient_email)
+
             message_body = f"""
             From: {firstname} {lastname} <br>
             Email: {email} <br>
@@ -1165,4 +1167,214 @@ def read_posts_by_tag_and_username(tag_id: int, username: str, db: Session = Dep
         raise HTTPException(status_code=404, detail="No posts found for the specified tag and username.")
 
     return posts
+
+
+@pages_router.post("/create-page")
+def create_page(page: models.PageCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Create Page
+
+    Endpoint: POST /api/pages/create-page
+    Description: Creates a new page with the provided title, content.
+    Parameters:
+    - page: The page data (title, content)
+    - token: The authentication token
+    Returns: The newly created page object.
+    """
+
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if current_user.role == 'user':
+
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    base_slug = methods.generate_slug(page.title)
+    print(base_slug)
+
+    # Ensure the slug is unique for the user
+    unique_slug = methods.ensure_unique_page_slug(base_slug, current_user.id, db)
+    print(unique_slug)
+
+    # Create the post
+    new_page = schemas.Page(
+        title=page.title,
+        content=page.content,
+        user_id=current_user.id,
+        author_name=current_user.username,
+        created_at=datetime.datetime.utcnow(),
+        status=page.status,
+        slug=unique_slug
+    )
+
+    db.add(new_page)
+    db.commit()
+    db.refresh(new_page)
+
+    return new_page
+
+
+@pages_router.delete("/delete-page/{page_id}")
+def delete_page(page_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Delete Page
+
+    Endpoint: DELETE /api/page/delete-page/{page_id}
+    Description: Deletes a page by its ID.
+    Parameters:
+    - page_id: The ID of the page to delete.
+    - token: The authentication token
+    Returns: A message confirming the page deletion.
+    """
+
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
+
+    # Retrieve the post
+    db_page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
+    if not db_page:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+
+    # Check if the current user is the owner of the post
+    if db_page.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to delete this page")
+
+    # Delete the page
+    db.delete(db_page)
+    db.commit()
+
+    return {"message": "Page is deleted successfully"}
+
+
+@pages_router.put("/update-page/{page_id}")
+def update_page(page_id: int, page: models.PageCreate, token: str = Depends(oauth2_scheme),
+                db: Session = Depends(get_db)):
+    """
+    Update Page
+
+    Endpoint: PUT /api/page/update-page/{page_id}
+    Description: Updates the content of a page by its ID.
+    Parameters:
+    - page_id: The ID of the post to update.
+    - page: The updated page data (title, content)
+    - token: The authentication token
+    Returns: The updated page object.
+    """
+
+    current_user = get_user_from_token(token)
+    if not current_user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if current_user.role == 'user':
+
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+    # Retrieve the post
+    db_page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
+    if not db_page:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Page not found")
+
+    # Check if the current user is the owner of the post
+    if db_page.user_id != current_user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
+                            detail="You do not have permission to update this page")
+
+    # If title is changed then change slug as well
+    if db_page.title.lower() != page.title.lower():
+        base_slug = methods.generate_slug(page.title)
+        # Ensure the slug is unique for the user
+        unique_slug = methods.ensure_unique_page_slug(base_slug, current_user.id, db)
+        db_page.title = page.title
+        db_page.content = page.content
+        db_page.status = page.status
+        db_page.slug = unique_slug
+    else:
+        db_page.title = page.title
+        db_page.content = page.content
+        db_page.status = page.status
+
+    # Commit the changes
+    db.commit()
+    db.refresh(db_page)
+
+    return db_page
+
+
+@pages_router.get("/user-all-pages")
+def get_all_pages(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Get All Pages of a User
+
+    Endpoint: GET /api/page/user-all-pages
+    Description: Retrieves all pages of a specific user from the database.
+    Returns: List of all pages of the specified user.
+    """
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        pages = db.query(schemas.Page).filter(schemas.Page.user_id == user.id).order_by(desc(schemas.Page.created_at))\
+            .all()
+
+        return pages
+    except Exception as e:
+        print(e)
+
+
+@pages_router.get("/{page_id}")
+def get_page(page_id: int, db: Session = Depends(get_db)):
+    """
+    Get Page
+
+    Endpoint: GET /page/{page_id}
+    Description: Retrieves information about the page with the specified ID.
+    Parameters:
+    page_id: ID of the post to retrieve (integer)
+    Returns: The post object containing its name, location, and associated user ID.
+    """
+    page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Create a dictionary to hold the response data
+    response_data = {
+        "id": page.id,
+        "author_name": page.author_name,
+        "title": page.title,
+        "content": page.content,
+        "slug": page.slug,
+        "status": page.status,
+        "created_at": page.created_at.isoformat()
+    }
+    return response_data
+
+
+@pages_router.get("/{username}/{slug}")
+def read_page(username: str, slug: str, db: Session = Depends(get_db)):
+    # Query the database for a post with the given username and slug
+    page = db.query(schemas.Page).join(User).filter(User.username == username, schemas.Page.slug == slug).first()
+
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    methods.increment_page_views(db=db, page_id=page.id)
+
+    response_data = {
+        "id": page.id,
+        "author_name": page.author_name,
+        "title": page.title,
+        "content": page.content,
+        "slug": page.slug,
+        "status": page.status,
+        "created_at": page.created_at.isoformat()
+    }
+
+    # Convert the PostInDB model to PostBase for the response
+    return response_data
 
