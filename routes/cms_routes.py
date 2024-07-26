@@ -910,6 +910,33 @@ def get_comments_settings(token: str = Depends(oauth2_scheme), db: Session = Dep
     return user_comments_settings
 
 
+@cms_router.get("/api/user/stats")
+async def stats(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Count of comments
+    current_user = get_user_from_token(token)
+    comments_total = db.query(schemas.Comment).filter(schemas.Comment.user_id == current_user.id).count()
+
+    # Count of posts
+    posts_total = db.query(schemas.Post).filter(schemas.Post.user_id == current_user.id).count()
+
+    # Count of feedbacks
+    feedbacks_total = db.query(schemas.Feedback).filter(schemas.Feedback.user_id == current_user.id).count()
+
+    # Count of newsletter subscribers
+    subscribers_total = db.query(schemas.NewsLetterSubscription).filter(
+        schemas.NewsLetterSubscription.user_id == current_user.id,
+        schemas.NewsLetterSubscription.status == "active"
+
+    ).count()
+
+    return {
+        "total_comments": comments_total,
+        "total_posts": posts_total,
+        "total_feedbacks": feedbacks_total,
+        "total_newsletter_subscribers": subscribers_total
+    }
+
+
 @newsletter_router.post("/subscribe_newsletter")
 def subscribe_newsletter(subscribe_newsletter: models.NewsLetterSubscription, db: Session = Depends(get_db)):
     print('start')
@@ -1377,4 +1404,6 @@ def read_page(username: str, slug: str, db: Session = Depends(get_db)):
 
     # Convert the PostInDB model to PostBase for the response
     return response_data
+
+
 
