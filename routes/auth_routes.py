@@ -99,6 +99,67 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         }
 
 
+@auth_router.get("/api/get-google-user-info")
+async def google_login(userinfo: dict, db: Session = Depends(get_db)):
+    userinfo.get('email')
+    user = db.query(User).filter(User.email == userinfo.get('email')).first()
+    if user:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.username, "role": user.role},
+            expires_delta=access_token_expires
+        )
+        user_services = db.query(Service).join(UserServices).filter(UserServices.user_id == user.id).all()
+
+        # Fetch company details
+        company = db.query(Company).filter(Company.user_id == user.id).first()
+
+        # Update user token
+        user.token = access_token
+        db.commit()
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.username,
+            "email": user.email,
+            "profile_picture": user.profile_picture,
+            "services": [{"id": service.service_id, "name": service.name} for service in user_services],
+            "company": {"id": company.id, "name": company.name} if company else None
+        }
+    else:
+        new_user = User(username=userinfo.get('name'), email=userinfo.get('email'),
+                        role='user', status="active", created_datetime=datetime.datetime.utcnow())
+
+        db.add(new_user)
+        db.commit()
+        db.refresh(new_user)
+
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": new_user.username, "role": new_user.role},
+            expires_delta=access_token_expires
+        )
+        user_services = db.query(Service).join(UserServices).filter(UserServices.user_id == new_user.id).all()
+
+        # Fetch company details
+        company = db.query(Company).filter(Company.user_id == new_user.id).first()
+
+        # Update user token
+        new_user.token = access_token
+        db.commit()
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": new_user.role,
+            "username": new_user.username,
+            "email": new_user.email,
+            "profile_picture": new_user.profile_picture,
+            "services": [{"id": service.service_id, "name": service.name} for service in user_services],
+            "company": {"id": company.id, "name": company.name} if company else None
+        }
+
+
 @auth_router.put("/api/update-password")
 async def update_password(
         current_password: str,
