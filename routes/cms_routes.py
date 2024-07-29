@@ -654,7 +654,7 @@ def upload_multiple_files(files: List[UploadFile] = File(...), db: Session = Dep
         db.commit()
         db.refresh(new_media)
 
-        uploaded_filenames.cms_routerend(file.filename)
+        uploaded_filenames.append(file.filename)
 
     return {
         "filenames": uploaded_filenames
