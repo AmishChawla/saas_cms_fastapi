@@ -74,6 +74,7 @@ class User(Base):
     pages = relationship("Page", back_populates="user")
     settings = relationship("UserSetting", back_populates="user", uselist=False)
     selected_media = relationship("SelectedMedia", back_populates="user")
+    created_forms = relationship("UserForms", back_populates="user")
 
 
 class Service(Base):
@@ -368,6 +369,21 @@ class UserSetting(Base):
     comment_approval = Column(String, default='manual', nullable=False)
 
     user = relationship("User", back_populates="settings")
+
+
+class UserForms(Base):
+    __tablename__ = "user_forms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    unique_id = Column(String, nullable=False, unique=True)
+    form_name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    form_html = Column(Text, nullable=False)  # Storing the form in HTML format
+    responses = Column(JSON, nullable=True)  # Storing the responses in JSON format
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="created_forms")
 
 
 # Create all tables defined in the metadata

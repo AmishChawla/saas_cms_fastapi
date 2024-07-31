@@ -123,7 +123,7 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
             "role": user.role,
             "username": user.username,
             "email": user.email,
-            "profile_picture": user.profile_picture,
+            "profile_picture": userinfo.get('profile_picture'),
             "services": [{"id": service.service_id, "name": service.name} for service in user_services],
             "company": {"id": company.id, "name": company.name} if company else None
         }
@@ -148,13 +148,14 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
         # Update user token
         new_user.token = access_token
         db.commit()
+        print(userinfo.get('picture'))
         return {
             "access_token": access_token,
             "token_type": "bearer",
             "role": new_user.role,
             "username": new_user.username,
             "email": new_user.email,
-            "profile_picture": new_user.profile_picture,
+            "profile_picture": userinfo.get('picture'),
             "services": [{"id": service.service_id, "name": service.name} for service in user_services],
             "company": {"id": company.id, "name": company.name} if company else None
         }

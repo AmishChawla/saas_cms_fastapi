@@ -45,6 +45,7 @@ MEDIA_DIRECTORY = "media/"
 os.makedirs(MEDIA_DIRECTORY, exist_ok=True)
 
 newsletter_router = APIRouter(prefix="/api/newsletter")
+formbuilder_router = APIRouter(prefix="/api/formbuilder")
 
 
 @cms_router.post("/api/posts/create-post")
@@ -1405,5 +1406,53 @@ def read_page(username: str, slug: str, db: Session = Depends(get_db)):
     # Convert the PostInDB model to PostBase for the response
     return response_data
 
+
+@formbuilder_router.post("/create-form")
+async def create_form(form_data: models.FormData, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if len(form_data.form_name) < 3:
+        raise HTTPException(status_code=400, detail="Form name must be at least 3 characters long.")
+
+    # Create a new form entry
+    new_form = schemas.UserForms(
+        form_name=form_data.form_name,
+        form_html=form_data.form_html,
+        user_id=user.id,
+        created_at=datetime.datetime.utcnow(),
+        unique_id=form_data.unique_id
+    )
+    db.add(new_form)
+    db.commit()
+    db.refresh(new_form)
+
+    return {"message": "Form created successfully.", "form_id": new_form.id}
+
+
+@formbuilder_router.get("/user-all-forms")
+async def get_user_forms(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        forms = db.query(schemas.UserForms).filter(schemas.UserForms.user_id == user.id).order_by(desc(schemas.UserForms.created_at)).all()
+        if not forms:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No forms found for this user")
+        return forms
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@formbuilder_router.get("/forms/{unique_id}")
+async def read_form_by_unique_id(unique_id: str, db: Session = Depends(get_db)):
+    try:
+        form = db.query(schemas.UserForms).filter(schemas.UserForms.unique_id == unique_id).first()
+        if not form:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found")
+        return form
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
 
 

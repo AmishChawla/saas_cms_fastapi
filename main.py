@@ -50,6 +50,7 @@ app.include_router(cms_routes.cms_router)
 app.include_router(email_templating_routes.email_template_router)
 app.include_router(cms_routes.newsletter_router)
 app.include_router(cms_routes.pages_router)
+app.include_router(cms_routes.formbuilder_router)
 
 
 
