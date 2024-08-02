@@ -267,7 +267,6 @@ async def user_profile(token: str = Depends(oauth2_scheme), db: Session = Depend
         "role": user.role,
         "profile_picture": user.profile_picture,
         "token": user.token,
-        "resume_data": user.resume_data,
         "status": user.status,
         "services": [{"id": service.service_id, "name": service.name} for service in user_services],
         "current_plans": current_active_plans,

@@ -1,2 +1,5 @@
 .env
 ./venv/
+./routes/resumer_parser_routes.py
+nltk_data
+resumes
