@@ -58,6 +58,7 @@ class User(Base):
 
     resume_data = relationship("ResumeData", back_populates="user")
     resume_collection = relationship("ResumeCollection", back_populates="user")
+    user_chats = relationship("UserChats", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     services = relationship("Service", secondary="user_services")
     company = relationship("Company", back_populates="user")
@@ -397,6 +398,16 @@ class ResumeCollection(Base):
     # pdf_resumes = Column(ARRAY(LargeBinary))
 
     user = relationship("User", back_populates="resume_collection")
+
+class UserChats(Base):
+    __tablename__ = "user_chats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    messages = Column(JSON)
+    upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="user_chats")
 
 
 
