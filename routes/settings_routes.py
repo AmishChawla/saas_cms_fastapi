@@ -10,6 +10,7 @@ import schemas
 from schemas import get_db, SessionLocal
 from methods import oauth2_scheme, get_user_from_token
 import stripe
+import access_management
 # from fastapi_cache.decorator import cache
 # from fastapi_cache import FastAPICache
 
@@ -23,6 +24,9 @@ subscription_router = APIRouter()
 @email_settings_router.post("/api/admin/email_settings/", response_model=models.SMTPSettings)
 def create_admin_email_settings(smtp_settings: models.SMTPSettingsBase, token: str = Depends(oauth2_scheme),
                                 db: Session = Depends(get_db)):
+    user = get_user_from_token(token)
+    if not access_management.check_user_access(user=user, allowed_permissions=['owner_email_setup']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     db_smtp_settings = smtp_crud.create_email_settings(smtp_settings=smtp_settings, token=token, db=db)
     return db_smtp_settings
 

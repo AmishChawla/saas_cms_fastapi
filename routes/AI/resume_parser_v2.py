@@ -2,6 +2,8 @@ import datetime
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Form, APIRouter,Body
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
+
+import access_management
 import methods
 from schemas import User, ResumeData, get_db, SessionLocal, Service, UserServices, Company
 from methods import get_password_hash, verify_password, get_current_user, oauth2_scheme, \
@@ -26,6 +28,9 @@ async def add_resume(
     db = SessionLocal()
     user = get_user_from_token(token)
     if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    if not access_management.check_user_access(user=user, allowed_permissions=['access_resume_parser']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     new_resume_collection = schemas.ResumeCollection(
@@ -53,6 +58,9 @@ async def read_user_resumes(token: str = Depends(oauth2_scheme), db: Session = D
     try:
         user = get_user_from_token(token)
         if not methods.is_service_allowed(user_id=user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+        if not access_management.check_user_access(user=user, allowed_permissions=['access_resume_parser']):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         records = db.query(schemas.ResumeCollection).filter(schemas.ResumeCollection.user_id == user.id).all()

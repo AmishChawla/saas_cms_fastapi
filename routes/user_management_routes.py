@@ -1,6 +1,8 @@
 from fastapi import FastAPI, HTTPException, Depends, status, File, UploadFile, Request, Form, APIRouter
 from typing import List, Optional
 from sqlalchemy.orm import Session, joinedload
+
+import access_management
 import methods
 from schemas import User, get_db, SessionLocal, Company
 from models import  UserCreate, TokenData
@@ -20,6 +22,9 @@ async def get_all_users(
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['list_of_users']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
 
     # Build the query to fetch users and their associated companies
     db = SessionLocal()
@@ -40,6 +45,8 @@ async def get_all_trash_users(
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['list_of_users']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Build the query to fetch users and their associated companies
     db = SessionLocal()
@@ -59,6 +66,8 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme), 
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Check if the email is already registered
     existing_user = db.query(User).filter(User.email == user.email).first()
@@ -68,7 +77,7 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme), 
     # Create a new user
     hashed_password = get_password_hash(user.password)
     new_user = User(username=user.username, email=user.email, hashed_password=hashed_password,
-                    role=user.role, status="active")
+                    role=user.role, status="active", group_id=user.security_group)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -86,15 +95,19 @@ async def admin_add_user(user: UserCreate, token: str = Depends(oauth2_scheme), 
 @user_management_router.delete("/api/admin/trash-user/{user_id}", response_model=dict)
 async def admin_trash_user(
         user_id: int,
-        current_user: TokenData = Depends(get_current_user),
+        token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
     """
     Endpoint to allow an admin to move a user to trash.
     """
+
+    current_user = get_user_from_token(token)
     # Check if the current user is an admin
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Check if the user to be deleted exists
     user_to_delete = db.query(User).filter(User.id == user_id).first()
@@ -113,15 +126,18 @@ async def admin_trash_user(
 @user_management_router.put("/api/admin/restore-user/{user_id}", response_model=dict)
 async def admin_delete_user(
         user_id: int,
-        current_user: TokenData = Depends(get_current_user),
+        token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
     """
     Endpoint to allow an admin to restore a user from trash.
     """
     # Check if the current user is an admin
+    current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Check if the user to be deleted exists
     user_to_delete = db.query(User).filter(User.id == user_id).first()
@@ -142,15 +158,19 @@ async def admin_delete_user(
 @user_management_router.delete("/api/admin/delete-user/{user_id}", response_model=dict)
 async def admin_delete_user(
         user_id: int,
-        current_user: TokenData = Depends(get_current_user),
+        token: str = Depends(oauth2_scheme),
         db: Session = Depends(get_db)
 ):
     """
     Endpoint to allow an admin to delete a user permanently.
     """
+    current_user = get_user_from_token(token)
     # Check if the current user is an admin
+
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Check if the user to be deleted exists
     user_to_delete = db.query(User).filter(User.id == user_id).first()
@@ -167,9 +187,12 @@ async def admin_delete_user(
 
 ################################# VIEW USER PROFILE #########################
 @user_management_router.get('/api/admin/view-user/{user_id}')
-async def user_profile(user_id: int, current_user: TokenData = Depends(get_current_user)):
+async def user_profile(user_id: int, token: str = Depends(oauth2_scheme)):
+    current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     db = SessionLocal()
     # Ensure that the user and related resume_data are loaded in the same session
     user = db.query(User).options(joinedload(User.resume_data)).filter_by(id=user_id).first()
@@ -198,6 +221,8 @@ async def edit_user(
     current_user = get_user_from_token(token)
     if current_user.role != "admin":
         raise HTTPException(status_code=403, detail="Permission denied")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Update the user's basic information
     user_to_update = db.query(User).filter(User.id == user_id).first()

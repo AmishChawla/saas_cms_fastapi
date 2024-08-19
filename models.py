@@ -19,6 +19,7 @@ class UserCreate(BaseModel):
     email: str
     password: str
     role: str = "user"
+    security_group: int
 
 
 class UserResponse(BaseModel):
