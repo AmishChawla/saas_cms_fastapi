@@ -229,5 +229,9 @@ class UnsubscribeNewsletter(BaseModel):
     subscriber_email: str
     username: str
 
-
+class FormData(BaseModel):
+    form_name: str
+    form_html: str
+    responses: Optional[dict] = None
+    unique_id: str
 

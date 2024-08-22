@@ -57,6 +57,8 @@ class User(Base):
     status = Column(String, default="active", index=True)
 
     resume_data = relationship("ResumeData", back_populates="user")
+    resume_collection = relationship("ResumeCollection", back_populates="user")
+    user_chats = relationship("UserChats", back_populates="user")
     password_resets = relationship("PasswordReset", back_populates="user")
     services = relationship("Service", secondary="user_services")
     company = relationship("Company", back_populates="user")
@@ -74,7 +76,11 @@ class User(Base):
     pages = relationship("Page", back_populates="user")
     settings = relationship("UserSetting", back_populates="user", uselist=False)
     selected_media = relationship("SelectedMedia", back_populates="user")
+
     themes = relationship('UserTheme', back_populates='user')
+
+    created_forms = relationship("UserForms", back_populates="user")
+
 
 
 class Service(Base):
@@ -398,6 +404,46 @@ class UserSetting(Base):
     comment_approval = Column(String, default='manual', nullable=False)
 
     user = relationship("User", back_populates="settings")
+
+
+class UserForms(Base):
+    __tablename__ = "user_forms"
+
+    id = Column(Integer, primary_key=True, index=True)
+    unique_id = Column(String, nullable=False, unique=True)
+    form_name = Column(String, nullable=False)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    form_html = Column(Text, nullable=False)  # Storing the form in HTML format
+    responses = Column(JSON, nullable=True)  # Storing the responses in JSON format
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    user = relationship("User", back_populates="created_forms")
+
+
+class ResumeCollection(Base):
+    __tablename__ = "resume_collection"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    extracted_data = Column(JSON)
+    upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
+    # pdf_resumes = Column(ARRAY(LargeBinary))
+
+    user = relationship("User", back_populates="resume_collection")
+
+class UserChats(Base):
+    __tablename__ = "user_chats"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    messages = Column(JSON)
+    upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="user_chats")
+
+
+
 
 
 # Create all tables defined in the metadata

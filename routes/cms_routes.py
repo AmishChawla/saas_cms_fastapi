@@ -45,6 +45,7 @@ MEDIA_DIRECTORY = "media/"
 os.makedirs(MEDIA_DIRECTORY, exist_ok=True)
 
 newsletter_router = APIRouter(prefix="/api/newsletter")
+formbuilder_router = APIRouter(prefix="/api/formbuilder")
 
 
 @cms_router.post("/api/posts/create-post")
@@ -1408,9 +1409,9 @@ def read_page(username: str, slug: str, db: Session = Depends(get_db)):
 
 @cms_router.post("/api/user/create_user_theme")
 def create_user_theme(
-    request: models.UserThemeCreate,
-    token: str = Depends(oauth2_scheme),
-    db: Session = Depends(get_db)
+        request: models.UserThemeCreate,
+        token: str = Depends(oauth2_scheme),
+        db: Session = Depends(get_db)
 ):
     try:
         # Retrieve the current user from the token
@@ -1443,6 +1444,7 @@ def create_user_theme(
             existing_theme.pinterest = request.pinterest
             existing_theme.instagram = request.instagram
             existing_theme.gmail = request.gmail
+
             db.commit()
             db.refresh(existing_theme)
             return existing_theme
@@ -1476,8 +1478,114 @@ def create_user_theme(
             return new_theme
 
     except Exception as e:
-        db.rollback()
+        db.rollback()  # Rollback the transaction in case of an error
         raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()  # Ensure the session is closed
+
+
+@formbuilder_router.post("/create-form")
+async def create_form(form_data: models.FormData, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    user = get_user_from_token(token)
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if len(form_data.form_name) < 3:
+        raise HTTPException(status_code=400, detail="Form name must be at least 3 characters long.")
+
+    # Create a new form entry
+    new_form = schemas.UserForms(
+        form_name=form_data.form_name,
+        form_html=form_data.form_html,
+        user_id=user.id,
+        created_at=datetime.datetime.utcnow(),
+        unique_id=form_data.unique_id
+    )
+    db.add(new_form)
+    db.commit()
+    db.refresh(new_form)
+
+    return {"message": "Form created successfully.", "form_id": new_form.id}
+
+
+@formbuilder_router.get("/user-all-forms")
+async def get_user_forms(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        forms = db.query(schemas.UserForms).filter(schemas.UserForms.user_id == user.id).order_by(desc(schemas.UserForms.created_at)).all()
+        if not forms:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No forms found for this user")
+        return forms
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@formbuilder_router.get("/forms/{unique_id}")
+async def read_form_by_unique_id(unique_id: str, db: Session = Depends(get_db)):
+    try:
+        form = db.query(schemas.UserForms).filter(schemas.UserForms.unique_id == unique_id).first()
+        if not form:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Form not found")
+        return form
+    except Exception as e:
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(e))
+
+
+@formbuilder_router.post("/{unique_id}/add-response")
+def collect_form_response(unique_id: str, response_data: dict = Body(..., embed=True), db: Session = Depends(get_db)):
+    try:
+        form = db.query(schemas.UserForms).filter_by(unique_id=unique_id).first()
+        if not form:
+            raise HTTPException(status_code=404, detail="Form not found")
+
+        # Add 'submitted_on' key with current datetime directly to response_data
+        submission_time = datetime.datetime.now().isoformat()  # Get current datetime as ISO format string
+        response_data['submitted_on'] = submission_time
+
+        # Convert response_data to JSON string
+        response_json = json.dumps(response_data)
+
+        # Check if form.responses is None, if so, initialize it with a list containing the new response
+        if form.responses is None:
+            form.responses = [response_json]
+        else:
+            # Convert the existing responses to a list, append the new response, and then join them back into a JSON array
+            form.responses = [response_json] + form.responses
+
+        # Commit the changes to save the updated form back to the database
+        db.commit()
+        db.refresh(form)
+
+        return {"message": "Response added successfully"}
+    except Exception as e:
+        raise e
+
+
+@formbuilder_router.delete("/delete-user-form/{unique_id}")
+def formbuilder_delete_userform(unique_id: str, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        userform = db.query(schemas.UserForms).filter(schemas.UserForms.unique_id == unique_id).first()
+        if not userform:
+            raise HTTPException(status_code=404, detail="UserForm not found")
+
+        db.delete(userform)
+        db.commit()
+
+        return {"detail": f"UserForm with unique_id {unique_id} deleted successfully"}
+
+    except Exception as e:
+        db.rollback()  # Rollback transaction if there is any error
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()  # Ensure the session is closed
 
 
 @cms_router.get("/api/themes/get_user_theme")
