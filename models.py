@@ -144,6 +144,29 @@ class UserCompanyResponse(BaseModel):
     company_location: str = None
 
 
+
+class UserThemeCreate(BaseModel):
+
+    theme_id: int  # New theme_id field
+    theme_name: str
+    background_image: Optional[str] = None
+    background_color: Optional[str] = None
+    header_color: Optional[str] = None
+    site_title: Optional[str] = None
+    site_subtitle: Optional[str] = None
+    home_link: Optional[str] = None
+    heading: Optional[str] = None
+    description: Optional[str] = None
+    footer_heading: Optional[str] = None
+    footer_items: Optional[List[str]] = None
+    facebook: Optional[str] = None
+    twitter: Optional[str] = None
+    youtube: Optional[str] = None
+    pinterest: Optional[str] = None
+    instagram: Optional[str] = None
+    gmail: Optional[str] = None
+
+
 ############################################################ EMAIL SETTINGS ###############################################################
 class SMTPSettingsBase(BaseModel):
     smtp_server: str

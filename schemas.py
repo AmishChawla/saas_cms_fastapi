@@ -74,6 +74,7 @@ class User(Base):
     pages = relationship("Page", back_populates="user")
     settings = relationship("UserSetting", back_populates="user", uselist=False)
     selected_media = relationship("SelectedMedia", back_populates="user")
+    themes = relationship('UserTheme', back_populates='user')
 
 
 class Service(Base):
@@ -333,6 +334,35 @@ class Feedback(Base):
 
     # Relationship to User
     user = relationship('User', back_populates='feedbacks')
+
+
+class UserTheme(Base):
+    __tablename__ = 'user_themes'
+
+    id = Column(Integer, primary_key=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    theme_id = Column(Integer, nullable=False)
+    theme_name = Column(String, nullable=False)
+    background_image = Column(String)
+    background_color = Column(String)
+    header_color = Column(String)
+    site_title = Column(String)
+    site_subtitle = Column(String)
+    home_link = Column(String)
+    heading = Column(String)
+    description = Column(String)
+    footer_heading = Column(String)
+    footer_items = Column(String)
+    facebook = Column(String)
+    twitter = Column(String)
+    youtube = Column(String)
+    pinterest = Column(String)
+    instagram = Column(String)
+    gmail = Column(String)
+
+    # Relationship to User
+    user = relationship('User', back_populates='themes')
+
 
 ######################################################### NEWSLETTER ######################################################################
 

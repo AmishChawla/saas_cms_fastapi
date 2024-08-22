@@ -1406,4 +1406,89 @@ def read_page(username: str, slug: str, db: Session = Depends(get_db)):
     return response_data
 
 
+@cms_router.post("/api/user/create_user_theme")
+def create_user_theme(
+    request: models.UserThemeCreate,
+    token: str = Depends(oauth2_scheme),
+    db: Session = Depends(get_db)
+):
+    try:
+        # Retrieve the current user from the token
+        current_user = get_user_from_token(token)
 
+        # Check if the user is allowed to use this service
+        if not methods.is_service_allowed(user_id=current_user.id):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+        # Check if the theme already exists for the user
+        existing_theme = db.query(schemas.UserTheme).filter_by(user_id=current_user.id).first()
+
+        if existing_theme:
+            # Update the existing theme
+            existing_theme.theme_id = request.theme_id
+            existing_theme.theme_name = request.theme_name
+            existing_theme.background_image = request.background_image
+            existing_theme.background_color = request.background_color
+            existing_theme.header_color = request.header_color
+            existing_theme.site_title = request.site_title
+            existing_theme.site_subtitle = request.site_subtitle
+            existing_theme.home_link = request.home_link
+            existing_theme.heading = request.heading
+            existing_theme.description = request.description
+            existing_theme.footer_heading = request.footer_heading
+            existing_theme.footer_items = ",".join(request.footer_items) if request.footer_items else None
+            existing_theme.facebook = request.facebook
+            existing_theme.twitter = request.twitter
+            existing_theme.youtube = request.youtube
+            existing_theme.pinterest = request.pinterest
+            existing_theme.instagram = request.instagram
+            existing_theme.gmail = request.gmail
+            db.commit()
+            db.refresh(existing_theme)
+            return existing_theme
+        else:
+            # Create a new theme
+            new_theme = schemas.UserTheme(
+                user_id=current_user.id,
+                theme_id=request.theme_id,
+                theme_name=request.theme_name,
+                background_image=request.background_image,
+                background_color=request.background_color,
+                header_color=request.header_color,
+                site_title=request.site_title,
+                site_subtitle=request.site_subtitle,
+                home_link=request.home_link,
+                heading=request.heading,
+                description=request.description,
+                footer_heading=request.footer_heading,
+                footer_items=",".join(request.footer_items) if request.footer_items else None,
+                facebook=request.facebook,
+                twitter=request.twitter,
+                youtube=request.youtube,
+                pinterest=request.pinterest,
+                instagram=request.instagram,
+                gmail=request.gmail
+            )
+
+            db.add(new_theme)
+            db.commit()
+            db.refresh(new_theme)
+            return new_theme
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=str(e))
+
+
+@cms_router.get("/api/themes/get_user_theme")
+def get_user_theme(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Retrieve current user from token
+    current_user = get_user_from_token(token)
+
+    # Get the user settings for the current user
+    user_activated_theme = db.query(schemas.UserTheme).filter(schemas.UserTheme.user_id == current_user.id).first()
+
+    if not user_activated_theme:
+        return {}
+
+    return user_activated_theme
