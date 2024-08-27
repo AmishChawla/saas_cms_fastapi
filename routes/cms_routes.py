@@ -1471,7 +1471,7 @@ def create_user_theme(
                 instagram=request.instagram,
                 gmail=request.gmail
             )
-
+            print(site_title)
             db.add(new_theme)
             db.commit()
             db.refresh(new_theme)
@@ -1600,3 +1600,58 @@ def get_user_theme(token: str = Depends(oauth2_scheme), db: Session = Depends(ge
         return {}
 
     return user_activated_theme
+
+
+@cms_router.get("/api/themes/get_user_theme_by_username/{username}")
+def get_user_theme_by_username(username: str, db: Session = Depends(get_db)):
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        user_activated_theme = db.query(schemas.UserTheme).filter(
+            schemas.UserTheme.user_id == user.id
+        ).first()
+
+        if not user_activated_theme:
+            return {}
+
+        return user_activated_theme
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        ) from e
+
+
+
+@cms_router.get("/api/user-posts/{username}")
+def get_posts_by_username(username: str, db: Session = Depends(get_db)):
+    """
+    Get All Posts by Username
+
+    Endpoint: GET /api/user-posts/{username}/
+    Description: Retrieves all posts of a specific user from the database by their username.
+    Returns: List of all posts of the specified user.
+    """
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        posts = db.query(schemas.Post).options(
+            joinedload(schemas.Post.category),
+            joinedload(schemas.Post.subcategory),
+            joinedload(schemas.Post.tags, innerjoin=True)
+        ).filter(schemas.Post.user_id == user.id).filter(schemas.Post.status == 'published').order_by(
+            desc(schemas.Post.created_at)).all()
+
+        return posts
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
