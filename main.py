@@ -10,7 +10,7 @@ from sqlalchemy.orm import Session, joinedload
 import methods
 import models
 import schemas
-from routes import auth_routes, cms_routes, services_routes, companies_routes, settings_routes, user_management_routes, resumer_parser_routes, email_templating_routes
+from routes import auth_routes, cms_routes, services_routes, companies_routes, settings_routes, user_management_routes, resumer_parser_routes, email_templating_routes, groups_and_permissions_routes
 from routes.AI import resume_parser_v2,chatbot
 from schemas import User, ResumeData, get_db, SessionLocal, Service, UserServices, Company
 from models import UserResponse, UserCreate, TokenData, UserFiles, AdminInfo
@@ -54,6 +54,9 @@ app.include_router(cms_routes.pages_router)
 app.include_router(cms_routes.formbuilder_router)
 app.include_router(resume_parser_v2.resume_parser_v2)
 app.include_router(chatbot.chatbot_router)
+app.include_router(groups_and_permissions_routes.access_management_router)
+
+
 
 
 

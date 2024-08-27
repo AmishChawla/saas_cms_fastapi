@@ -37,6 +37,8 @@ from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
 from starlette.templating import Jinja2Templates
 import stripe
+import access_management
+
 
 cms_router = APIRouter()
 pages_router = APIRouter(prefix="/api/page")
@@ -55,7 +57,7 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
 
     Endpoint: POST /api/posts/create-post
     Description: Creates a new post with the provided title, content, user ID, category ID, subcategory ID, and tag ID.
-    Parameters:
+    Parameters:  
     - post: The post data (title, content, category_id, subcategory_id, tag_id)
     - token: The authentication token
     Returns: The newly created post object.
@@ -68,6 +70,9 @@ def create_post(post: models.PostCreate, token: str = Depends(oauth2_scheme), db
 
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     base_slug = methods.generate_slug(post.title)
 
@@ -128,6 +133,9 @@ def delete_post(post_id: int, token: str = Depends(oauth2_scheme), db: Session =
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
 
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
@@ -175,6 +183,9 @@ def update_post(post_id: int, post: models.PostCreate, token: str = Depends(oaut
 
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Retrieve the post
     db_post = db.query(schemas.Post).filter(schemas.Post.id == post_id).first()
     if not db_post:
@@ -307,6 +318,8 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
@@ -365,6 +378,8 @@ def get_subcategories_by_category(category_id: int, db: Session = Depends(get_db
 def create_category(request: models.CategoryCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Create a new category instance
     current_user = get_user_from_token(token)
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
     new_category = schemas.Category(category=request.category, user_id=current_user.id)
@@ -390,6 +405,8 @@ def get_user_all_categories(token: str = Depends(oauth2_scheme), db: Session = D
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         categories = db.query(schemas.Category).filter(schemas.Category.user_id == user.id).order_by(
             desc(schemas.Category.created_at)).all()
@@ -415,6 +432,8 @@ def delete_user_category(category_id: int, token: str = Depends(oauth2_scheme), 
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
     if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Retrieve the post
@@ -455,6 +474,8 @@ def update_user_category(category_id: int, request: models.CategoryCreate, token
 
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Retrieve the category
     db_category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
@@ -483,6 +504,8 @@ def create_subcategory(request: models.SubcategoryCreate, token: str = Depends(o
     current_user = get_user_from_token(token)
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     new_subcategory = schemas.SubCategory(subcategory=request.subcategory, category_id=request.category_id,
                                           user_id=current_user.id)
 
@@ -499,6 +522,8 @@ def update_subcategory(subcategory_id: int, request: models.SubcategoryCreate, t
                        db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
     if not methods.is_service_allowed(user_id=current_user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id,
                                                        schemas.SubCategory.user_id == current_user.id).first()
@@ -521,6 +546,8 @@ def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme),
 
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id,
                                                        schemas.SubCategory.user_id == current_user.id).first()
@@ -539,6 +566,8 @@ def create_tag_for_user(tag: models.TagCreate, token: str = Depends(oauth2_schem
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     return tags_crud.create_tag(db=db, tag_create=tag, user_id=current_user.id)
 
@@ -566,6 +595,8 @@ def update_existing_tag(old_tag_id: int,
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     new_tag = tags_crud.update_tag(db, current_user.id, old_tag_id, new_tag_details)
 
     if not new_tag:
@@ -579,6 +610,8 @@ def delete_tag_from_db(tag_id: int, db: Session = Depends(get_db), token: str = 
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     db_tag = tags_crud.get_tag(db=db, tag_id=tag_id)
     if db_tag is None:
         raise HTTPException(status_code=404, detail="Tag not found")
@@ -592,6 +625,8 @@ def user_all_tags(db: Session = Depends(get_db), token: str = Depends(oauth2_sch
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=404, detail="User not found")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
     # Query to get all tags related to the user, ordered by created_at DESC
 
     tags = db.query(schemas.Tag, schemas.TagUser.post_count). \
@@ -665,7 +700,7 @@ def upload_multiple_files(files: List[UploadFile] = File(...), db: Session = Dep
 @cms_router.get("/api/user-all-medias")
 def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     """
-    Get All Posts of a User
+    Get All Media of a User
 
     Endpoint: GET /api/user-all-medias
     Description: Retrieves all posts of a specific user from the database.
@@ -676,6 +711,9 @@ def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depen
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_media']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
 
         medias = db.query(schemas.Media).filter(schemas.Media.user_id == user.id).order_by(
             desc(schemas.Media.uploaded_at)).all()
@@ -693,6 +731,9 @@ def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_schem
     # Example: methods.is_service_allowed(user_id=current_user.id)
     # if not methods.is_service_allowed(user_id=current_user.id):
     #     raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['site_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
 
     # Create a new comment instance
     new_comment = schemas.Comment(
@@ -726,6 +767,8 @@ def delete_comment(comment_id: int, token: str = Depends(oauth2_scheme), db: Ses
     current_user = get_user_from_token(token)
     if not current_user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_comments']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
@@ -746,6 +789,8 @@ def delete_comment(comment_id: int, token: str = Depends(oauth2_scheme), db: Ses
 def add_like_to_a_comment(request: models.AddLike, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Get the current user from the token
     current_user = get_user_from_token(token)
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['site_user']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Create a new Commentlike instance
     new_like = schemas.Commentlike(post_id=request.post_id, comment_id=request.comment_id, user_id=current_user.id)
@@ -784,6 +829,9 @@ def remove_like_from_a_comment(comment_like_id: int, token: str = Depends(oauth2
 @cms_router.get("/api/comment/all")
 def get_all_comments(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     current_user = get_user_from_token(token)
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_comments']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
 
     # Get all post IDs created by the current user
     user_post_ids = db.query(schemas.Post.id).filter(schemas.Post.user_id == current_user.id).all()
@@ -852,6 +900,8 @@ def update_comment_settings(
 ):
     # Retrieve current user from token
     current_user = get_user_from_token(token)
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     # Retrieve existing user settings
     user_settings = db.query(schemas.UserSetting).filter(schemas.UserSetting.user_id == current_user.id).first()
@@ -901,6 +951,9 @@ def update_comment_settings(
 def get_comments_settings(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Retrieve current user from token
     current_user = get_user_from_token(token)
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
 
     # Get the user settings for the current user
     user_comments_settings = db.query(schemas.UserSetting).filter(schemas.UserSetting.user_id == current_user.id).first()
@@ -986,6 +1039,8 @@ def get_newsletter_subscribers_for_user(token: str = Depends(oauth2_scheme), db:
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         subscribers = db.query(schemas.NewsLetterSubscription) \
             .filter(schemas.NewsLetterSubscription.user_id == user.id) \
@@ -1020,6 +1075,8 @@ def send_newsletter(mail: models.Mail, post_url: str, token: str = Depends(oauth
     if user is None:
         raise HTTPException(status_code=404, detail="User not found")
     if not methods.is_service_allowed(user_id=user.id):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+    if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     subscribers = db.query(schemas.NewsLetterSubscription.subscriber_email).join(User).filter(
@@ -1218,6 +1275,9 @@ def create_page(page: models.PageCreate, token: str = Depends(oauth2_scheme), db
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
 
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_pages']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     base_slug = methods.generate_slug(page.title)
     print(base_slug)
 
@@ -1263,6 +1323,9 @@ def delete_page(page_id: int, token: str = Depends(oauth2_scheme), db: Session =
     if not methods.is_service_allowed(user_id=current_user.id):
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
 
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_pages']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     # Retrieve the post
     db_page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
     if not db_page:
@@ -1302,6 +1365,10 @@ def update_page(page_id: int, page: models.PageCreate, token: str = Depends(oaut
 
         if not methods.is_service_allowed(user_id=current_user.id):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+    if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_pages']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
+
     # Retrieve the post
     db_page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
     if not db_page:
@@ -1346,6 +1413,8 @@ def get_all_pages(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_pages']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         pages = db.query(schemas.Page).filter(schemas.Page.user_id == user.id).order_by(desc(schemas.Page.created_at))\
             .all()
@@ -1490,6 +1559,8 @@ async def create_form(form_data: models.FormData, token: str = Depends(oauth2_sc
     user = get_user_from_token(token)
     if not user:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+    if not access_management.check_user_access(user=user, allowed_permissions=['manage_forms']):
+        raise HTTPException(status_code=403, detail="User does not have access to this service")
 
     if len(form_data.form_name) < 3:
         raise HTTPException(status_code=400, detail="Form name must be at least 3 characters long.")
@@ -1515,6 +1586,9 @@ async def get_user_forms(token: str = Depends(oauth2_scheme), db: Session = Depe
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_forms']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
         forms = db.query(schemas.UserForms).filter(schemas.UserForms.user_id == user.id).order_by(desc(schemas.UserForms.created_at)).all()
         if not forms:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No forms found for this user")
@@ -1570,6 +1644,8 @@ def formbuilder_delete_userform(unique_id: str, token: str = Depends(oauth2_sche
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_forms']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         userform = db.query(schemas.UserForms).filter(schemas.UserForms.unique_id == unique_id).first()
         if not userform:

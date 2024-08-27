@@ -1,5 +1,7 @@
 
 from fastapi import HTTPException, Depends, status
+
+import access_management
 import methods
 import models
 import schemas
@@ -76,6 +78,8 @@ def get_smtp_settings(token: str ,db: Session):
 
     elif user.role == 'admin':
         # Fetch the SMTP settings associated with the user
+        if not access_management.check_user_access(user=user, allowed_permissions=['owner_email_setup']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
         smtp_settings = db.query(schemas.SMTPSettings).filter(
             schemas.SMTPSettings.id  == 2).first()
         if smtp_settings is None:
@@ -106,6 +110,9 @@ def update_admin_email_settings(smtp_settings_update: models.SMTPSettingsBase, t
         raise HTTPException(status_code=404, detail="User not found")
 
     elif user.role == "admin":
+        if not access_management.check_user_access(user=user, allowed_permissions=['owner_email_setup']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
         # Fetch the existing SMTP settings associated with the user
         existing_smtp_settings = db.query(schemas.SMTPSettings).filter(
             schemas.SMTPSettings.id == 2).first()  # ID 2 is where admin smpt settings are stored.

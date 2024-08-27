@@ -55,6 +55,7 @@ class User(Base):
     created_datetime = Column(DateTime(timezone=True), server_default=func.now())
     profile_picture = Column(String, nullable=True)
     status = Column(String, default="active", index=True)
+    group_id = Column(Integer, ForeignKey('groups.id'))
 
     resume_data = relationship("ResumeData", back_populates="user")
     resume_collection = relationship("ResumeCollection", back_populates="user")
@@ -80,6 +81,7 @@ class User(Base):
     themes = relationship('UserTheme', back_populates='user')
 
     created_forms = relationship("UserForms", back_populates="user")
+    groups = relationship("Group", back_populates="user")
 
 
 
@@ -441,6 +443,19 @@ class UserChats(Base):
     upload_datetime = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="user_chats")
+
+
+class Group(Base):
+    __tablename__ = 'groups'
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), unique=True, nullable=False)
+    permissions = Column(JSON, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="groups")
+
+
 
 
 

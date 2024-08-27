@@ -6,11 +6,13 @@ from fastapi.security import OAuth2PasswordRequestForm
 from datetime import timedelta
 from sqlalchemy.orm import Session, joinedload, selectinload
 import methods
+import schemas
 from schemas import User, ResumeData, get_db, SessionLocal, PasswordReset, Service, UserServices, Company
 from models import UserResponse, UserCreate, Token, TokenData, UserFiles, AdminInfo, UsersResponse, UserCompanyResponse
 from constants import DATABASE_URL, ACCESS_TOKEN_EXPIRE_MINUTES
 from methods import get_password_hash, verify_password, create_access_token, get_current_user, oauth2_scheme, \
     get_user_from_token, update_user_password
+import access_management
 
 
 auth_router = APIRouter()
@@ -26,7 +28,7 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
     # Create a new user
     hashed_password = get_password_hash(user.password)
     new_user = User(username=user.username, email=user.email, hashed_password=hashed_password,
-                    role=user.role, status="active", created_datetime=datetime.datetime.utcnow())
+                    role=user.role, status="active", created_datetime=datetime.datetime.utcnow(), group_id=2)
     db.add(new_user)
     db.commit()
     db.refresh(new_user)
@@ -44,7 +46,10 @@ async def register_user(user: UserCreate, db: Session = Depends(get_db)):
 @auth_router.post("/api/login", response_model=dict)
 async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Authenticate user using email
+
     user = db.query(User).filter(User.email == form_data.username).first()
+    user_group = db.query(schemas.Group).filter(schemas.Group.id == user.group_id).first()
+    permissions = user_group.permissions
 
     if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -83,6 +88,7 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
         # Fetch company details
         company = db.query(Company).filter(Company.user_id == user.id).first()
 
+
         # Update user token
         user.token = access_token
         db.commit()
@@ -95,7 +101,8 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(
             "email": user.email,
             "profile_picture": user.profile_picture,
             "services": [{"id": service.service_id, "name": service.name} for service in user_services],
-            "company": {"id": company.id, "name": company.name} if company else None
+            "company": {"id": company.id, "name": company.name} if company else None,
+            "group": {"id": user_group.id, "name": user_group.name, "permissions": user_group.permissions}
         }
 
 
@@ -113,6 +120,7 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
 
         # Fetch company details
         company = db.query(Company).filter(Company.user_id == user.id).first()
+        user_group = db.query(schemas.Group).filter(schemas.Group.id == user.group_id).first()
 
         # Update user token
         user.token = access_token
@@ -125,11 +133,12 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
             "email": user.email,
             "profile_picture": userinfo.get('profile_picture'),
             "services": [{"id": service.service_id, "name": service.name} for service in user_services],
-            "company": {"id": company.id, "name": company.name} if company else None
+            "company": {"id": company.id, "name": company.name} if company else None,
+            "group": {"id": user_group.id, "name": user_group.name, "permissions": user_group.permissions}
         }
     else:
         new_user = User(username=userinfo.get('name'), email=userinfo.get('email'),
-                        role='user', status="active", created_datetime=datetime.datetime.utcnow())
+                        role='user', status="active", created_datetime=datetime.datetime.utcnow(), group_id=2)
 
         db.add(new_user)
         db.commit()
@@ -144,9 +153,11 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
 
         # Fetch company details
         company = db.query(Company).filter(Company.user_id == new_user.id).first()
+        user_group = db.query(schemas.Group).filter(schemas.Group.id == user.group_id).first()
 
         # Update user token
         new_user.token = access_token
+
         db.commit()
         print(userinfo.get('picture'))
         return {
@@ -157,7 +168,8 @@ async def google_login(userinfo: dict, db: Session = Depends(get_db)):
             "email": new_user.email,
             "profile_picture": userinfo.get('picture'),
             "services": [{"id": service.service_id, "name": service.name} for service in user_services],
-            "company": {"id": company.id, "name": company.name} if company else None
+            "company": {"id": company.id, "name": company.name} if company else None,
+            "group": {"id": user_group.id, "name": user_group.name, "permissions": user_group.permissions}
         }
 
 
@@ -190,6 +202,8 @@ async def update_password(
 async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
     # Authenticate user using email
     user = db.query(User).filter(User.email == form_data.username).first()
+    user_group = db.query(schemas.Group).filter(schemas.Group.id == user.group_id).first()
+    permissions = user_group.permissions
 
     if user is None or not verify_password(form_data.password, user.hashed_password):
         raise HTTPException(
@@ -226,7 +240,8 @@ async def login_for_admin(form_data: OAuth2PasswordRequestForm = Depends(), db: 
             "role": user.role,
             "username": user.username,
             "email": user.email,
-            "profile_picture": user.profile_picture
+            "profile_picture": user.profile_picture,
+            "group": {"id": user_group.id, "name": user_group.name, "permissions": user_group.permissions}
         }
 ################################# FORGOT PASSWORD #########################
 @auth_router.post("/api/forgot-password")
