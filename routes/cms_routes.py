@@ -1731,3 +1731,20 @@ def get_posts_by_username(username: str, db: Session = Depends(get_db)):
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
 
+@cms_router.post("/api/pages/toggle_show_in_nav/{page_id}")
+def toggle_pages_in_nav(page_id: int, db: Session = Depends(get_db)):
+    # Fetch the page by id
+    page = db.query(schemas.Page).filter(schemas.Page.id == page_id).first()
+
+    # If page is not found, return 404
+    if not page:
+        raise HTTPException(status_code=404, detail="Page not found")
+
+    # Toggle the value of display_in_nav
+    page.display_in_nav = "yes" if page.display_in_nav == "no" else "no"
+
+    # Commit the changes to the database
+    db.commit()
+
+    return {"success": True, "new_value": page.display_in_nav}
+
