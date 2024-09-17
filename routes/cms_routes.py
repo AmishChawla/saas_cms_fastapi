@@ -1748,3 +1748,39 @@ def toggle_pages_in_nav(page_id: int, db: Session = Depends(get_db)):
 
     return {"success": True, "new_value": page.display_in_nav}
 
+
+@cms_router.get("/api/admin/scrapped-jobs")
+async def get_scrapped_jobs(skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    try:
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_user']):
+            raise HTTPException(status_code=403, detail="User does not have access to this service")
+
+        scrapped_jobs = db.query(schemas.ScrappedJobs).offset(skip).limit(limit).all()
+        return scrapped_jobs
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
+@cms_router.post("/api/admin/add-scrapped-jobs")
+async def add_scrapped_jobs(scrapped_jobs: List[models.ScrappedJobsCreate], db: Session = Depends(get_db)):
+    try:
+        db_jobs = []
+        for scrapped_job in scrapped_jobs:
+            db_job = schemas.ScrappedJobs(**scrapped_job.dict())
+            db.add(db_job)
+            db_jobs.append(db_job)
+
+        db.commit()
+        db.refresh_all(db_jobs)
+        return 'added'
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail="One or more jobs could not be added due to integrity constraints.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred while adding jobs: {str(e)}")
+
+
+
