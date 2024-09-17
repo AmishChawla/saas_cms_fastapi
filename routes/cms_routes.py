@@ -1750,13 +1750,8 @@ def toggle_pages_in_nav(page_id: int, db: Session = Depends(get_db)):
 
 
 @cms_router.get("/api/admin/scrapped-jobs")
-async def get_scrapped_jobs(skip: int = 0, limit: int = 100, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+async def get_scrapped_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
     try:
-        user = get_user_from_token(token)
-        if not user:
-            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        if not access_management.check_user_access(user=user, allowed_permissions=['manage_user']):
-            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
         scrapped_jobs = db.query(schemas.ScrappedJobs).order_by(desc(schemas.ScrappedJobs.posted_date)).offset(skip).limit(limit).all()
         return scrapped_jobs
