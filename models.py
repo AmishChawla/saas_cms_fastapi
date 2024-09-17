@@ -249,6 +249,7 @@ class ScrappedJobs(BaseModel):
     industry: str
     applicants: int
     apply_url: str
+    posted_date: str
 
 
 class ScrappedJobsCreate(BaseModel):
@@ -263,4 +264,5 @@ class ScrappedJobsCreate(BaseModel):
     industry: str
     applicants: int
     apply_url: str
+    posted_date: str
 

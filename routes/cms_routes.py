@@ -1758,11 +1758,13 @@ async def get_scrapped_jobs(skip: int = 0, limit: int = 100, token: str = Depend
         if not access_management.check_user_access(user=user, allowed_permissions=['manage_user']):
             raise HTTPException(status_code=403, detail="User does not have access to this service")
 
-        scrapped_jobs = db.query(schemas.ScrappedJobs).offset(skip).limit(limit).all()
+        scrapped_jobs = db.query(schemas.ScrappedJobs).order_by(desc(schemas.ScrappedJobs.posted_date)).offset(skip).limit(limit).all()
         return scrapped_jobs
     except Exception as e:
         print(e)
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
 
 
 @cms_router.post("/api/admin/add-scrapped-jobs")

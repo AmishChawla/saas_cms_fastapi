@@ -471,6 +471,7 @@ class ScrappedJobs(Base):
     industry = Column(String)
     applicants = Column(Integer)
     apply_url = Column(String)
+    posted_date = Column(DateTime)
 
 
 
