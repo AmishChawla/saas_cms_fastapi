@@ -236,7 +236,39 @@ class FormData(BaseModel):
     responses: Optional[dict] = None
     unique_id: str
 
+
 class MenuCreate(BaseModel):
     name: str
+
+
+class ScrappedJobs(BaseModel):
+    id: int
+    title: str
+    job_link: str
+    state: str
+    description: str
+    company: str
+    seniority_level: str
+    job_type: str
+    job_function: str
+    industry: str
+    applicants: int
+    apply_url: str
+    posted_date: str
+
+
+class ScrappedJobsCreate(BaseModel):
+    title: str
+    job_link: str
+    state: str
+    description: str
+    company: str
+    seniority_level: str
+    job_type: str
+    job_function: str
+    industry: str
+    applicants: int
+    apply_url: str
+    posted_date: str
 
 

@@ -458,6 +458,7 @@ class Group(Base):
     user = relationship("User", back_populates="groups")
 
 
+
 class Menu(Base):
     __tablename__ = "menus"
 
@@ -467,6 +468,25 @@ class Menu(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="menus")
+
+class ScrappedJobs(Base):
+    __tablename__ = "scrapped_jobs"
+    id = Column(Integer, primary_key=True, index=True)
+    title = Column(String)
+    job_link = Column(String)
+    state = Column(String)
+    description = Column(Text)
+    company = Column(String)
+    seniority_level = Column(String)
+    job_type = Column(String)
+    job_function = Column(String)
+    industry = Column(String)
+    applicants = Column(Integer)
+    apply_url = Column(String)
+    posted_date = Column(DateTime)
+
+
+
 
 
 

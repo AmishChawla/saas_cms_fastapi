@@ -1785,6 +1785,7 @@ def toggle_pages_in_nav(page_id: int, db: Session = Depends(get_db)):
     return {"success": True, "new_value": page.display_in_nav}
 
 
+
 @cms_router.post("/api/user/create_menu")
 def create_menu(
     request: models.MenuCreate,  # Request body validation using Pydantic model
@@ -1826,6 +1827,43 @@ def create_menu(
         db.close()  # Close the session after the transaction
 
 
+
+@cms_router.put("/api/user/update_menu/{menu_id}")
+def update_menu(
+    menu_id: int,  # The ID of the menu to update
+    request: models.MenuCreate,  # Pydantic model for menu update
+    token: str = Depends(oauth2_scheme),  # Get the OAuth2 token
+    db: Session = Depends(get_db)  # Get the database session
+):
+    try:
+        # Retrieve the current user from the token
+        current_user = get_user_from_token(token)
+
+        if not current_user:
+            raise HTTPException(status_code=403, detail="Authentication required")
+
+        # Check if the menu exists for the current user
+        existing_menu = db.query(schemas.Menu).filter_by(user_id=current_user.id, id=menu_id).first()
+
+        if not existing_menu:
+            raise HTTPException(status_code=404, detail="Menu not found")
+
+        # Update the existing menu's fields (you can add more fields if needed)
+        existing_menu.name = request.name or existing_menu.name  # Update the name if provided
+        # Add any other fields to update here as necessary
+
+        db.commit()
+        db.refresh(existing_menu)
+        return {"message": "Menu updated successfully", "menu": existing_menu}
+
+    except Exception as e:
+        db.rollback()  # Rollback transaction if something goes wrong
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()  # Close the session after the transaction
+
+
 @cms_router.get("/api/user/get_user_menu")
 def get_user_menu(
     token: str = Depends(oauth2_scheme),  # Get the OAuth2 token
@@ -1851,4 +1889,37 @@ def get_user_menu(
 
     finally:
         db.close()  # Close the session after the transaction
+
+@cms_router.get("/api/admin/scrapped-jobs")
+async def get_scrapped_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db)):
+    try:
+
+        scrapped_jobs = db.query(schemas.ScrappedJobs).order_by(desc(schemas.ScrappedJobs.posted_date)).offset(skip).limit(limit).all()
+        return scrapped_jobs
+    except Exception as e:
+        print(e)
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Internal Server Error")
+
+
+
+
+@cms_router.post("/api/admin/add-scrapped-jobs")
+async def add_scrapped_jobs(scrapped_jobs: List[models.ScrappedJobsCreate], db: Session = Depends(get_db)):
+    try:
+        db_jobs = []
+        for scrapped_job in scrapped_jobs:
+            db_job = schemas.ScrappedJobs(**scrapped_job.dict())
+            db.add(db_job)
+            db_jobs.append(db_job)
+
+        db.commit()
+        db.refresh_all(db_jobs)
+        return 'added'
+    except IntegrityError as e:
+        raise HTTPException(status_code=400, detail="One or more jobs could not be added due to integrity constraints.")
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"An error occurred while adding jobs: {str(e)}")
+
+
+
 
