@@ -78,6 +78,14 @@ def get_user_from_token(token: str):
     return user
 
 
+def get_scrapper_user_from_token(token: str):
+    db = SessionLocal()
+    user = db.query(schemas.ScrapperUser).filter(schemas.ScrapperUser.token == token).first()
+    db.close()
+    return user
+
+
+
 def update_user_password(user_id: int, new_password):
     hashed_password = pwd_context.hash(new_password)
     db = SessionLocal()
