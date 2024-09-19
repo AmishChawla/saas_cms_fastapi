@@ -236,3 +236,7 @@ class FormData(BaseModel):
     responses: Optional[dict] = None
     unique_id: str
 
+class MenuCreate(BaseModel):
+    name: str
+
+

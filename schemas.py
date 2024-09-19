@@ -82,6 +82,7 @@ class User(Base):
 
     created_forms = relationship("UserForms", back_populates="user")
     groups = relationship("Group", back_populates="user")
+    menus = relationship("Menu", back_populates="user")
 
 
 
@@ -457,6 +458,15 @@ class Group(Base):
     user = relationship("User", back_populates="groups")
 
 
+class Menu(Base):
+    __tablename__ = "menus"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'))
+    name = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="menus")
 
 
 

@@ -722,6 +722,42 @@ def get_user_all_medias(token: str = Depends(oauth2_scheme), db: Session = Depen
         print(e)
 
 
+@cms_router.delete("/api/user-media/{media_id}")
+def delete_media(media_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Delete Media by ID
+
+    Endpoint: DELETE /api/user-media/{media_id}
+    Description: Deletes a media file of the specified user by media ID.
+    Returns: Success message if the media is deleted, or raises an error.
+    """
+    try:
+        # Get the user from the token
+        user = get_user_from_token(token)
+        if not user:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+        # Check if the user has access to delete media
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_media']):
+            raise HTTPException(status_code=403, detail="User does not have access to delete media")
+
+        # Query the media item by ID
+        media = db.query(schemas.Media).filter(schemas.Media.id == media_id, schemas.Media.user_id == user.id).first()
+
+        if not media:
+            raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Media not found")
+
+        # Delete the media
+        db.delete(media)
+        db.commit()
+
+        return {"message": "Media deleted successfully"}
+
+    except Exception as e:
+        db.rollback()
+        raise HTTPException(status_code=500, detail=f"An error occurred while deleting media: {str(e)}")
+
+
 @cms_router.post("/api/post/add_comment")
 def add_comment(request: models.CommentCreate, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Retrieve current user from token
@@ -1747,4 +1783,72 @@ def toggle_pages_in_nav(page_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"success": True, "new_value": page.display_in_nav}
+
+
+@cms_router.post("/api/user/create_menu")
+def create_menu(
+    request: models.MenuCreate,  # Request body validation using Pydantic model
+    token: str = Depends(oauth2_scheme),  # Get the OAuth2 token
+    db: Session = Depends(get_db)  # Get the database session
+):
+    try:
+        # Retrieve the current user from the token
+        current_user = get_user_from_token(token)
+
+        if not current_user:
+            raise HTTPException(status_code=403, detail="Authentication required")
+
+        # Check if the menu with the same name exists for the user
+        existing_menu = db.query(schemas.Menu).filter_by(user_id=current_user.id, name=request.name).first()
+
+        if existing_menu:
+            # If the menu already exists, update the existing one
+            existing_menu.name = request.name  # Update as necessary
+            db.commit()
+            db.refresh(existing_menu)
+            return existing_menu
+        else:
+            # Create a new menu
+            new_menu = schemas.Menu(
+                user_id=current_user.id,
+                name=request.name
+            )
+            db.add(new_menu)
+            db.commit()
+            db.refresh(new_menu)
+            return new_menu
+
+    except Exception as e:
+        db.rollback()  # Rollback transaction if something goes wrong
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()  # Close the session after the transaction
+
+
+@cms_router.get("/api/user/get_user_menu")
+def get_user_menu(
+    token: str = Depends(oauth2_scheme),  # Get the OAuth2 token
+    db: Session = Depends(get_db)  # Get the database session
+):
+    try:
+        # Retrieve the current user from the token
+        current_user = get_user_from_token(token)
+
+        if not current_user:
+            raise HTTPException(status_code=403, detail="Authentication required")
+
+        # Query to retrieve all menus associated with the user
+        user_menus = db.query(schemas.Menu).filter_by(user_id=current_user.id).all()
+
+        if not user_menus:
+            raise HTTPException(status_code=404, detail="No menus found for the user")
+
+        return user_menus
+
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+    finally:
+        db.close()  # Close the session after the transaction
 
