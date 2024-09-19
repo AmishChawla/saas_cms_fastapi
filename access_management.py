@@ -22,6 +22,8 @@ SITE_ADMIN_PERMISSIONS = ["manage_posts",
 
 SITE_USER_PERMISSIONS = ["site_user"]
 
+SCRAPPER_PERMISSIONS = ["scrapper_user"]
+
 
 def check_user_access(user: schemas.User, allowed_permissions):
     db = SessionLocal()

@@ -456,6 +456,26 @@ class Group(Base):
     updated_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="groups")
+    scrapper_user = relationship("ScrapperUser", back_populates="groups")
+
+
+class ScrapperUser(Base):
+    __tablename__ = "scrapper_users"
+    id = Column(Integer, primary_key=True, index=True)
+    name = Column(String, index=True)
+    email = Column(String, unique=True, index=True)
+    phone_number = Column(String)
+    hashed_password = Column(String)
+    role = Column(String, default="user")
+    token = Column(String, default="")
+    created_datetime = Column(DateTime(timezone=True), server_default=func.now())
+    profile_picture = Column(String, nullable=True)
+    status = Column(String, default="active", index=True)
+    group_id = Column(Integer, ForeignKey('groups.id'))
+
+    groups = relationship("Group", back_populates="scrapper_user")
+
+
 
 
 

@@ -306,3 +306,84 @@ async def register_admin(admin: AdminInfo, db: Session = Depends(get_db)):
     }
 
 
+################################### SCRAPPER USER AUTH #################################################
+
+@auth_router.post("/api/scrapper-login", response_model=dict)
+async def login_scrapper_for_access_token(form_data: OAuth2PasswordRequestForm = Depends(), db: Session = Depends(get_db)):
+    # Authenticate user using email
+
+    user = db.query(schemas.ScrapperUser).filter(schemas.ScrapperUser.email == form_data.username).first()
+    user_group = db.query(schemas.Group).filter(schemas.Group.id == user.group_id).first()
+    permissions = user_group.permissions
+
+    if user is None or not verify_password(form_data.password, user.hashed_password):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.role != "user":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Insufficient privileges",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.status != "active":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="User is blocked",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    elif user.status == "deleted":
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid credentials",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+    else:
+        access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)
+        access_token = create_access_token(
+            data={"sub": user.name, "role": user.role},
+            expires_delta=access_token_expires
+        )
+
+
+        # Update user token
+        user.token = access_token
+        db.commit()
+
+        return {
+            "access_token": access_token,
+            "token_type": "bearer",
+            "role": user.role,
+            "username": user.name,
+            "email": user.email,
+            "profile_picture": user.profile_picture,
+            "group": {"id": user_group.id, "name": user_group.name, "permissions": user_group.permissions}
+        }
+
+@auth_router.post("/api/scrapper-register")
+async def register_jobseeker(user: UserCreate, db: Session = Depends(get_db)):
+    # Check if the email is already registered
+    existing_user = db.query(schemas.ScrapperUser).filter(schemas.ScrapperUser.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
+
+    # Create a new user
+    hashed_password = get_password_hash(user.password)
+    new_scrapper_user = schemas.ScrapperUser(name=user.username, email=user.email, hashed_password=hashed_password,
+                    role=user.role, status="active", created_datetime=datetime.datetime.utcnow(), group_id=9)
+    db.add(new_scrapper_user)
+    db.commit()
+    db.refresh(new_scrapper_user)
+
+    return {
+        "id": new_scrapper_user.id,
+        "username": new_scrapper_user.name,
+        "email": new_scrapper_user.email,
+        "role": new_scrapper_user.role,
+        "created_datetime": new_scrapper_user.created_datetime,
+        "status": new_scrapper_user.status,
+    }
+
+
