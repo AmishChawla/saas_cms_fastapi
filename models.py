@@ -239,6 +239,10 @@ class FormData(BaseModel):
 
 class MenuCreate(BaseModel):
     name: str
+    theme_location: Optional[List[str]] = None  # Allows for a list of theme locations
+
+class PageUpdateRequest(BaseModel):
+    page_ids: list[int]  # List of page IDs
 
 
 class ScrappedJobs(BaseModel):

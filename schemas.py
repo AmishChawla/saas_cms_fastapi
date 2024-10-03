@@ -206,9 +206,11 @@ class Page(Base):
     slug = Column(String, index=True, nullable=False)
     page_views = Column(Integer, default=0)
     display_in_nav = Column(String, default="no")
+    menu_id = Column(Integer, ForeignKey('menus.id'))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="pages")
+    menu = relationship("Menu", back_populates="pages")
 
 
 
@@ -485,9 +487,11 @@ class Menu(Base):
     id = Column(Integer, primary_key=True, index=True)
     user_id = Column(Integer, ForeignKey('users.id'))
     name = Column(String, nullable=False)
+    theme_location = Column(JSON, nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     user = relationship("User", back_populates="menus")
+    pages = relationship("Page", back_populates="menu")
 
 class ScrappedJobs(Base):
     __tablename__ = "scrapped_jobs"

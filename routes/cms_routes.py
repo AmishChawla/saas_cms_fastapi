@@ -1460,6 +1460,31 @@ def get_all_pages(token: str = Depends(oauth2_scheme), db: Session = Depends(get
         print(e)
 
 
+@cms_router.get("/api/pages/get_user_page_by_username/{username}")
+def get_user_page_by_username(username: str, db: Session = Depends(get_db)):
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        user_pages = db.query(schemas.Page).filter(
+            schemas.Page.user_id == user.id
+        ).all()
+
+        if not user_pages:
+            return {}
+
+        return user_pages
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        ) from e
+
 @pages_router.get("/{page_id}")
 def get_page(page_id: int, db: Session = Depends(get_db)):
     """
@@ -1849,10 +1874,11 @@ def update_menu(
         if not existing_menu:
             raise HTTPException(status_code=404, detail="Menu not found")
 
-        # Update the existing menu's fields (you can add more fields if needed)
-        existing_menu.name = request.name or existing_menu.name  # Update the name if provided
-        # Add any other fields to update here as necessary
+        # Update the existing menu's fields
+        existing_menu.name = request.name  # Update the name
+        existing_menu.theme_location = request.theme_location  # Update the theme_location
 
+        # Commit the changes to the database
         db.commit()
         db.refresh(existing_menu)
         return {"message": "Menu updated successfully", "menu": existing_menu}
@@ -1890,6 +1916,56 @@ def get_user_menu(
 
     finally:
         db.close()  # Close the session after the transaction
+
+
+@cms_router.get("/api/menus/get_user_menu_by_username/{username}")
+def get_user_menu_by_username(username: str, db: Session = Depends(get_db)):
+    try:
+        user = db.query(schemas.User).filter(schemas.User.username == username).first()
+        if not user:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        user_menus = db.query(schemas.Menu).filter(
+            schemas.Menu.user_id == user.id
+        ).all()
+
+        if not user_menus:
+            return {}
+
+        return user_menus
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        ) from e
+
+
+@cms_router.put("/api/menus/update_menu_page/{menu_id}")
+def update_menu_page(menu_id: int, page_update: models.PageUpdateRequest, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    # Get the current user from the token
+    current_user = get_user_from_token(token)
+
+    # Fetch all pages that match the given list of page IDs and belong to the current user
+    pages = db.query(schemas.Page).filter(schemas.Page.id.in_(page_update.page_ids), schemas.Page.user_id == current_user.id).all()
+
+    if not pages:
+        # If no pages found, raise a 404 error
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="No pages found or not authorized to update")
+
+    # Update the menu_id for all pages
+    for page in pages:
+        page.menu_id = menu_id
+
+    # Commit the changes to the database
+    db.commit()
+
+    # Return a success response with updated page details
+    return {"message": f"Menu updated for {len(pages)} pages", "updated_pages": [page.id for page in pages]}
+
 
 @cms_router.get("/api/scrapper/scrapped-jobs")
 async def get_scrapped_jobs(skip: int = 0, limit: int = 100, db: Session = Depends(get_db),token: str = Depends(oauth2_scheme)):
