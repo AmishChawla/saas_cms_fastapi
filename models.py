@@ -242,7 +242,7 @@ class MenuCreate(BaseModel):
     theme_location: Optional[List[str]] = None  # Allows for a list of theme locations
 
 class PageUpdateRequest(BaseModel):
-    page_ids: list[int]  # List of page IDs
+    page_ids: List[int]  # List of page IDs
 
 
 class ScrappedJobs(BaseModel):
