@@ -256,7 +256,10 @@ Returns: The post object containing its name, location, and associated user ID.
     post = db.query(schemas.Post).options(joinedload(schemas.Post.category)).filter(schemas.Post.id == post_id).first()
     if not post:
         raise HTTPException(status_code=404, detail="Post not found")
-    category_name = post.category.category
+    if post.category.category:
+        category_name = post.category.category
+    else:
+        category_name = "NULL"
 
     # Create a dictionary to hold the response data
     response_data = {
@@ -436,7 +439,7 @@ def delete_user_category(category_id: int, token: str = Depends(oauth2_scheme), 
     if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
-    # Retrieve the post
+    # Retrieve the category
     db_category = db.query(schemas.Category).filter(schemas.Category.id == category_id).first()
     if not db_category:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Category not found")
@@ -444,13 +447,18 @@ def delete_user_category(category_id: int, token: str = Depends(oauth2_scheme), 
     # Check if the current user is the owner of the category
     if db_category.user_id != current_user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN,
-                            detail="You do not have permission to delete this post")
+                            detail="You do not have permission to delete this category")
 
-    # Delete the post
+    # Set the category_id to NULL in the Post table where category_id matches the one being deleted
+    db.query(schemas.Post).filter(schemas.Post.category_id == category_id).update({schemas.Post.category_id: None})
+    db.commit()
+
+    # Delete the category
     db.delete(db_category)
     db.commit()
 
-    return "Category is deleted successfully"
+    return {"message": "Category and associated posts updated successfully"}
+
 
 
 @cms_router.put("/api/category/update-category/{category_id}")
@@ -542,6 +550,17 @@ def update_subcategory(subcategory_id: int, request: models.SubcategoryCreate, t
 
 @cms_router.delete("/api/user/delete_subcategory/{subcategory_id}")
 def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
+    """
+    Delete Subcategory
+
+    Endpoint: DELETE /api/user/delete_subcategory/{subcategory_id}
+    Description: Deletes a subcategory by its ID and sets subcategory_id in related posts to NULL.
+    Parameters:
+    - subcategory_id: The ID of the subcategory to delete.
+    - token: The authentication token.
+    Returns: A message indicating successful deletion.
+    """
+
     current_user = get_user_from_token(token)
 
     if not methods.is_service_allowed(user_id=current_user.id):
@@ -549,16 +568,27 @@ def delete_subcategory(subcategory_id: int, token: str = Depends(oauth2_scheme),
     if not access_management.check_user_access(user=current_user, allowed_permissions=['manage_posts']):
         raise HTTPException(status_code=403, detail="User does not have access to this service")
 
-    subcategory = db.query(schemas.SubCategory).filter(schemas.SubCategory.id == subcategory_id,
-                                                       schemas.SubCategory.user_id == current_user.id).first()
+    # Retrieve the subcategory
+    subcategory = db.query(schemas.SubCategory).filter(
+        schemas.SubCategory.id == subcategory_id,
+        schemas.SubCategory.user_id == current_user.id
+    ).first()
 
     if not subcategory:
         raise HTTPException(status_code=404, detail="Subcategory not found or not authorized")
 
+    # Set the subcategory_id to NULL in the Post table where subcategory_id matches the one being deleted
+    db.query(schemas.Post).filter(schemas.Post.subcategory_id == subcategory_id).update(
+        {schemas.Post.subcategory_id: None}
+    )
+    db.commit()
+
+    # Delete the subcategory
     db.delete(subcategory)
     db.commit()
 
     return {"detail": "Subcategory deleted successfully"}
+
 
 
 @cms_router.post("/api/tags/")
@@ -1004,7 +1034,16 @@ def get_comments_settings(token: str = Depends(oauth2_scheme), db: Session = Dep
 async def stats(token: str = Depends(oauth2_scheme), db: Session = Depends(get_db)):
     # Count of comments
     current_user = get_user_from_token(token)
-    comments_total = db.query(schemas.Comment).filter(schemas.Comment.user_id == current_user.id).count()
+    # Get all post IDs created by the current user
+    user_post_ids = db.query(schemas.Post.id).filter(schemas.Post.user_id == current_user.id).all()
+    user_post_ids = [post.id for post in user_post_ids]
+
+    # Get comments for posts created by the current user
+    comments_total = db.query(schemas.Comment).options(
+        joinedload(schemas.Comment.posts),
+        joinedload(schemas.Comment.user)
+    ).filter(schemas.Comment.post_id.in_(user_post_ids)).count()
+
 
     # Count of posts
     posts_total = db.query(schemas.Post).filter(schemas.Post.user_id == current_user.id).count()
@@ -1965,6 +2004,24 @@ def update_menu_page(menu_id: int, page_update: models.PageUpdateRequest, token:
 
     # Return a success response with updated page details
     return {"message": f"Menu updated for {len(pages)} pages", "updated_pages": [page.id for page in pages]}
+
+
+@cms_router.get("/api/URL_XML")
+def get_url_xml(db: Session = Depends(get_db)):
+    try:
+        url_xml = db.query(schemas.URLXML).all()
+
+        if not url_xml:
+            return {}
+
+        return url_xml
+
+    except Exception as e:
+        raise HTTPException(
+            status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            detail="An unexpected error occurred"
+        ) from e
+
 
 
 @cms_router.get("/api/scrapper/scrapped-jobs")

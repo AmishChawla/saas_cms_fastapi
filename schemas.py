@@ -83,6 +83,7 @@ class User(Base):
     created_forms = relationship("UserForms", back_populates="user")
     groups = relationship("Group", back_populates="user")
     menus = relationship("Menu", back_populates="user")
+    external_css = relationship("ExternalCSS", back_populates="user")
 
 
 
@@ -224,6 +225,11 @@ class Category(Base):
     count = Column(Integer, default=0)
 
     user = relationship("User", back_populates="categories")
+    subcategories = relationship(
+        "SubCategory",
+        back_populates="category",
+        cascade="all, delete-orphan"
+    )
     posts = relationship("Post", back_populates="category")
 
 class SubCategory(Base):
@@ -237,6 +243,7 @@ class SubCategory(Base):
 
     user = relationship("User", back_populates="subcategories")
     posts = relationship("Post", back_populates="subcategory")
+    category = relationship("Category", back_populates="subcategories")
 
 
 class Tag(Base):
@@ -492,6 +499,26 @@ class Menu(Base):
 
     user = relationship("User", back_populates="menus")
     pages = relationship("Page", back_populates="menu")
+
+
+class ExternalCSS(Base):
+    __tablename__ = "external_css"
+
+    id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    css = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    user = relationship("User", back_populates="external_css")
+
+
+class URLXML(Base):
+    __tablename__ = "url_xml"
+
+    id = Column(Integer, primary_key=True, index=True)
+    url = Column(String, nullable=False)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
 
 class ScrappedJobs(Base):
     __tablename__ = "scrapped_jobs"
