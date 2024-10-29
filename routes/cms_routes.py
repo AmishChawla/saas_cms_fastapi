@@ -318,22 +318,30 @@ def get_all_posts(token: str = Depends(oauth2_scheme), db: Session = Depends(get
     Returns: List of all posts of the specified user.
     """
     try:
+        # Retrieve the user from the token
         user = get_user_from_token(token)
         if not user:
             raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
-        if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
-            raise HTTPException(status_code=403, detail="User does not have access to this service")
 
+        # Check if the user has the required permissions
+        if not access_management.check_user_access(user=user, allowed_permissions=['manage_posts']):
+            raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="User does not have access to this service")
+
+        # Query to get all posts for the specific user
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
-            joinedload(schemas.Post.tags, innerjoin=True)  # Adjusted for many-to-many relationship
+            joinedload(schemas.Post.tags)  # Adjusted for many-to-many relationship
         ).filter(schemas.Post.user_id == user.id).order_by(desc(schemas.Post.created_at)).all()
-        print(posts[0])
 
+        # Return the posts directly as JSON
         return posts
+    except SQLAlchemyError as db_error:
+        print(f"Database error: {db_error}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Database error occurred while retrieving posts")
     except Exception as e:
-        print(e)
+        print(f"Unexpected error: {e}")
+        raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="An error occurred while retrieving posts")
 
 
 @cms_router.get("/api/user-posts/{username}")
@@ -353,7 +361,7 @@ def get_posts_by_username(username: str, db: Session = Depends(get_db)):
         posts = db.query(schemas.Post).options(
             joinedload(schemas.Post.category),
             joinedload(schemas.Post.subcategory),
-            joinedload(schemas.Post.tags, innerjoin=True)
+            joinedload(schemas.Post.tags)
         ).filter(schemas.Post.user_id == user.id).filter(schemas.Post.status == 'published').order_by(
             desc(schemas.Post.created_at)).all()
 
